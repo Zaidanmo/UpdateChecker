@@ -8,4 +8,11 @@
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <ApplicationIcon>Assets\app_logo.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Resource Include="Assets\app_logo.ico" />
+    </ItemGroup>
 </Project>

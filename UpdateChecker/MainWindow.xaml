@@ -1,93 +1,280 @@
-﻿<Window x:Class="UpdateChecker.Desktop.MainWindow"
+﻿<Window x:Class="UpdateChecker.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="App Update Checker"
-        Height="520"
-        Width="900"
-        MinHeight="420"
-        MinWidth="720"
-        WindowStartupLocation="CenterScreen">
+        Icon="Assets/app_logo.ico"
+        Width="960"
+        Height="620"
+        MinWidth="760"
+        MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#F4F6F9"
+        FontFamily="Segoe UI">
 
-    <Grid Margin="24">
+    
+    <Window.Resources>
+
+        
+        <!-- Modern button -->
+        <Style x:Key="PrimaryButtonStyle"
+               TargetType="Button">
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="Background"
+                    Value="#2563EB"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="Padding"
+                    Value="22,11"/>
+            <Setter Property="FontSize"
+                    Value="14"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#1D4ED8"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed"
+                                     Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#1E40AF"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled"
+                                     Value="False">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#94A3B8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Column headers -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background"
+                    Value="#F8FAFC"/>
+            <Setter Property="Foreground"
+                    Value="#475569"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="FontSize"
+                    Value="13"/>
+            <Setter Property="Padding"
+                    Value="14,12"/>
+            <Setter Property="BorderThickness"
+                    Value="0,0,0,1"/>
+            <Setter Property="BorderBrush"
+                    Value="#E2E8F0"/>
+        </Style>
+
+        <!-- Cells -->
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding"
+                    Value="14,10"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="Transparent"/>
+                    <Setter Property="Foreground"
+                            Value="#0F172A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background"
+                    Value="White"/>
+            <Setter Property="Foreground"
+                    Value="#0F172A"/>
+            <Setter Property="BorderBrush"
+                    Value="#E2E8F0"/>
+            <Setter Property="BorderThickness"
+                    Value="0,0,0,1"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="#F8FAFC"/>
+                </Trigger>
+
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="#E2E8F0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="App Update Checker"
-                       FontSize="26"
-                       FontWeight="SemiBold"/>
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="White"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1"
+                Padding="32,24">
 
-            <TextBlock Text="Check for application updates detected by WinGet."
-                       Margin="0,6,0,0"
-                       Opacity="0.7"/>
-        </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="1"
-                    Margin="0,20,0,14"
-                    Orientation="Horizontal">
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="App Update Checker"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Foreground="#0F172A"/>
 
-            <Button x:Name="CheckUpdatesButton"
-                    Width="160"
-                    Height="38"
-                    Content="Check for updates"
-                    Click="CheckUpdatesButton_Click"/>
+                    <TextBlock Text="Find available updates for applications installed on your computer."
+                               Margin="0,7,0,0"
+                               FontSize="14"
+                               Foreground="#64748B"/>
+                </StackPanel>
 
-            <ProgressBar x:Name="LoadingProgressBar"
-                         Width="170"
-                         Height="8"
-                         Margin="16,0,0,0"
-                         VerticalAlignment="Center"
-                         IsIndeterminate="True"
-                         Visibility="Collapsed"/>
-        </StackPanel>
-
-        <Border Grid.Row="2"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
-                BorderThickness="1"
-                CornerRadius="4">
-
-            <DataGrid x:Name="UpdatesDataGrid"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      SelectionMode="Single"
-                      GridLinesVisibility="Horizontal"
-                      HeadersVisibility="Column"
-                      BorderThickness="0">
-
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Application"
-                                        Binding="{Binding Name}"
-                                        Width="2*"/>
-
-                    <DataGridTextColumn Header="Package ID"
-                                        Binding="{Binding Id}"
-                                        Width="2*"/>
-
-                    <DataGridTextColumn Header="Installed"
-                                        Binding="{Binding InstalledVersion}"
-                                        Width="*"/>
-
-                    <DataGridTextColumn Header="Available"
-                                        Binding="{Binding AvailableVersion}"
-                                        Width="*"/>
-
-                    <DataGridTextColumn Header="Source"
-                                        Binding="{Binding Source}"
-                                        Width="*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+                <Button x:Name="CheckUpdatesButton"
+                        Grid.Column="1"
+                        Content="Check for updates"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Click="CheckUpdatesButton_Click"
+                        VerticalAlignment="Center"/>
+            </Grid>
         </Border>
 
-        <TextBlock x:Name="StatusTextBlock"
-                   Grid.Row="3"
-                   Margin="0,12,0,0"
-                   Text="Ready."
-                   Opacity="0.75"/>
+        <!-- Main content -->
+        <Grid Grid.Row="1"
+              Margin="32,26,32,28">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Summary -->
+            <Grid Grid.Row="0"
+                  Margin="0,0,0,16">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Available updates"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#0F172A"/>
+
+                    <TextBlock Text="Applications with newer versions available."
+                               Margin="0,4,0,0"
+                               FontSize="13"
+                               Foreground="#64748B"/>
+                </StackPanel>
+
+                <ProgressBar x:Name="LoadingProgressBar"
+                             Grid.Column="1"
+                             Width="180"
+                             Height="7"
+                             IsIndeterminate="True"
+                             Visibility="Collapsed"
+                             VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Table card -->
+            <Border Grid.Row="1"
+                    Background="White"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="12">
+
+                <DataGrid x:Name="UpdatesDataGrid"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False"
+                          CanUserSortColumns="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="None"
+                          RowHeaderWidth="0"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          SelectionMode="Single">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Application"
+                                            Binding="{Binding Name}"
+                                            Width="2.5*"/>
+
+                        <DataGridTextColumn Header="Current Version"
+                                            Binding="{Binding InstalledVersion}"
+                                            Width="1.3*"/>
+
+                        <DataGridTextColumn Header="Latest Version"
+                                            Binding="{Binding AvailableVersion}"
+                                            Width="1.3*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- Status area -->
+            <Border Grid.Row="2"
+                    Margin="0,16,0,0"
+                    Padding="14,10"
+                    Background="White"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8"
+                             Height="8"
+                             Fill="#2563EB"
+                             Margin="0,0,10,0"
+                             VerticalAlignment="Center"/>
+
+                    <TextBlock x:Name="StatusTextBlock"
+                               Text="Ready to check for updates."
+                               FontSize="13"
+                               Foreground="#475569"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

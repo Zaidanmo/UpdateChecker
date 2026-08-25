@@ -5,5 +5,13 @@ public sealed record AppUpdateInfo(
     string Id,
     string InstalledVersion,
     string AvailableVersion,
-    string Source
-);
+    string Source)
+{
+    public bool IsUpdateAvailable =>
+        !string.IsNullOrWhiteSpace(AvailableVersion) &&
+        !string.Equals(
+            InstalledVersion,
+            AvailableVersion,
+            StringComparison.OrdinalIgnoreCase
+        );
+}

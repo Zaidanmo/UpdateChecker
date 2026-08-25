@@ -183,11 +183,9 @@ public sealed class WingetService
 
             if (string.IsNullOrWhiteSpace(line))
                 continue;
-            
 
             if (IsSeparatorLine(line))
                 continue;
-
 
             if (line.Contains("upgrades available", StringComparison.OrdinalIgnoreCase) ||
                 line.Contains("upgrade available", StringComparison.OrdinalIgnoreCase) ||

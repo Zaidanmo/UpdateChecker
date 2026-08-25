@@ -3,7 +3,7 @@ using System.Windows;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
-namespace UpdateChecker.Desktop;
+namespace UpdateChecker;
 
 public partial class MainWindow : Window
 {
