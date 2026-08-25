@@ -13,7 +13,8 @@ public sealed class WingetService
         RegexOptions.Compiled
     );
 
-    public async Task<IReadOnlyList<AppUpdateInfo>> GetAvailableUpdatesAsync(CancellationToken cT = default)
+    public async Task<IReadOnlyList<AppUpdateInfo>> GetAvailableUpdatesAsync(
+        CancellationToken cancellationToken = default)
     {
         string wingetPath = ResolveWingetPath();
 
@@ -50,27 +51,25 @@ public sealed class WingetService
 
         try
         {
-            await process.WaitForExitAsync(cT);
+            await process
+                .WaitForExitAsync(cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             if (!process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
+                await process
+                    .WaitForExitAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
             }
 
             throw;
         }
 
-        string output = await outputTask;
-        File.WriteAllText(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                "winget-output.txt"
-            ),
-            output
-        );
-        string error = await errorTask;
+        string output = await outputTask.ConfigureAwait(false);
+        string error = await errorTask.ConfigureAwait(false);
 
         IReadOnlyList<AppUpdateInfo> updates = ParseOutput(output);
 

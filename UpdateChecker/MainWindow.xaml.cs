@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
@@ -8,9 +7,11 @@ namespace UpdateChecker;
 public partial class MainWindow : Window
 {
     private readonly WingetService _wingetService = new();
+    private CancellationTokenSource? _updateCheckCancellation;
+    private bool _cancelRequestedByUser;
 
-    private readonly ObservableCollection<AppUpdateInfo> _updates =
-        new();
+    private IReadOnlyList<AppUpdateInfo> _updates =
+        Array.Empty<AppUpdateInfo>();
 
     public MainWindow()
     {
@@ -23,20 +24,37 @@ public partial class MainWindow : Window
         object sender,
         RoutedEventArgs e)
     {
+        if (_updateCheckCancellation is { } activeCancellation)
+        {
+            _cancelRequestedByUser = true;
+            CheckUpdatesButton.Content = "Cancelling...";
+            CheckUpdatesButton.IsEnabled = false;
+            activeCancellation.Cancel();
+            return;
+        }
+
+        using var cancellation = new CancellationTokenSource(
+            TimeSpan.FromSeconds(60)
+        );
+
+        _updateCheckCancellation = cancellation;
+        _cancelRequestedByUser = false;
+
         SetLoadingState(true);
 
-        _updates.Clear();
+        _updates = Array.Empty<AppUpdateInfo>();
+        UpdatesDataGrid.ItemsSource = _updates;
         StatusTextBlock.Text = "Checking for available updates...";
 
         try
         {
             IReadOnlyList<AppUpdateInfo> updates =
-                await _wingetService.GetAvailableUpdatesAsync();
+                await _wingetService.GetAvailableUpdatesAsync(
+                    cancellation.Token
+                );
 
-            foreach (AppUpdateInfo update in updates)
-            {
-                _updates.Add(update);
-            }
+            _updates = updates;
+            UpdatesDataGrid.ItemsSource = _updates;
 
             StatusTextBlock.Text = updates.Count switch
             {
@@ -44,6 +62,12 @@ public partial class MainWindow : Window
                 1 => "1 available update was detected.",
                 _ => $"{updates.Count} available updates were detected."
             };
+        }
+        catch (OperationCanceledException)
+        {
+            StatusTextBlock.Text = _cancelRequestedByUser
+                ? "Update check cancelled."
+                : "Update check timed out. Please try again.";
         }
         catch (Exception exception)
         {
@@ -59,13 +83,18 @@ public partial class MainWindow : Window
         }
         finally
         {
+            _updateCheckCancellation = null;
+            _cancelRequestedByUser = false;
             SetLoadingState(false);
         }
     }
 
     private void SetLoadingState(bool isLoading)
     {
-        CheckUpdatesButton.IsEnabled = !isLoading;
+        CheckUpdatesButton.Content = isLoading
+            ? "Cancel"
+            : "Check for updates";
+        CheckUpdatesButton.IsEnabled = true;
 
         LoadingProgressBar.Visibility = isLoading
             ? Visibility.Visible
@@ -74,5 +103,11 @@ public partial class MainWindow : Window
         EmptyStatePanel.Visibility = !isLoading && _updates.Count == 0
             ? Visibility.Visible
             : Visibility.Collapsed;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _updateCheckCancellation?.Cancel();
+        base.OnClosed(e);
     }
 }
