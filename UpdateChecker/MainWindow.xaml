@@ -1,0 +1,93 @@
+﻿<Window x:Class="UpdateChecker.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="App Update Checker"
+        Height="520"
+        Width="900"
+        MinHeight="420"
+        MinWidth="720"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="App Update Checker"
+                       FontSize="26"
+                       FontWeight="SemiBold"/>
+
+            <TextBlock Text="Check for application updates detected by WinGet."
+                       Margin="0,6,0,0"
+                       Opacity="0.7"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    Margin="0,20,0,14"
+                    Orientation="Horizontal">
+
+            <Button x:Name="CheckUpdatesButton"
+                    Width="160"
+                    Height="38"
+                    Content="Check for updates"
+                    Click="CheckUpdatesButton_Click"/>
+
+            <ProgressBar x:Name="LoadingProgressBar"
+                         Width="170"
+                         Height="8"
+                         Margin="16,0,0,0"
+                         VerticalAlignment="Center"
+                         IsIndeterminate="True"
+                         Visibility="Collapsed"/>
+        </StackPanel>
+
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                BorderThickness="1"
+                CornerRadius="4">
+
+            <DataGrid x:Name="UpdatesDataGrid"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Single"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      BorderThickness="0">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Application"
+                                        Binding="{Binding Name}"
+                                        Width="2*"/>
+
+                    <DataGridTextColumn Header="Package ID"
+                                        Binding="{Binding Id}"
+                                        Width="2*"/>
+
+                    <DataGridTextColumn Header="Installed"
+                                        Binding="{Binding InstalledVersion}"
+                                        Width="*"/>
+
+                    <DataGridTextColumn Header="Available"
+                                        Binding="{Binding AvailableVersion}"
+                                        Width="*"/>
+
+                    <DataGridTextColumn Header="Source"
+                                        Binding="{Binding Source}"
+                                        Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="3"
+                   Margin="0,12,0,0"
+                   Text="Ready."
+                   Opacity="0.75"/>
+    </Grid>
+</Window>
