@@ -223,18 +223,42 @@
                                       StrokeEndLineCap="Round"/>
                             </Grid>
 
-                            <Border Background="{StaticResource SoftBlueBrush}"
-                                    CornerRadius="12"
-                                    Padding="11,6">
+                            <Border Background="#FFF7D6"
+                                    BorderBrush="#F0D77A"
+                                    BorderThickness="1"
+                                    CornerRadius="11"
+                                    Padding="10,6"
+                                    ToolTip="Minor and patch-level version changes">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding ElementName=UpdatesDataGrid, Path=Items.Count}"
-                                               FontSize="12"
-                                               FontWeight="Bold"
-                                               Foreground="{StaticResource PrimaryBrush}"/>
-                                    <TextBlock Text=" found"
+                                    <Ellipse Width="6"
+                                             Height="6"
+                                             Margin="0,0,7,0"
+                                             Fill="#D99A00"
+                                             VerticalAlignment="Center"/>
+                                    <TextBlock Text="Update available"
                                                FontSize="12"
                                                FontWeight="SemiBold"
-                                               Foreground="#5273A7"/>
+                                               Foreground="#805A00"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="8,0,0,0"
+                                    Background="#FDEBEC"
+                                    BorderBrush="#F1C4C8"
+                                    BorderThickness="1"
+                                    CornerRadius="11"
+                                    Padding="10,6"
+                                    ToolTip="The first numeric version component has changed">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="6"
+                                             Height="6"
+                                             Margin="0,0,7,0"
+                                             Fill="#D64550"
+                                             VerticalAlignment="Center"/>
+                                    <TextBlock Text="Major update"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#982E37"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -265,7 +289,7 @@
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="APPLICATION"
                                                         SortMemberPath="Name"
-                                                        Width="2.4*">
+                                                        Width="2.2*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="22,0"
@@ -287,7 +311,7 @@
 
                                 <DataGridTemplateColumn Header="CURRENT VERSION"
                                                         SortMemberPath="InstalledVersion"
-                                                        Width="1.1*">
+                                                        Width="1*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding InstalledVersion}"
@@ -302,7 +326,7 @@
 
                                 <DataGridTemplateColumn Header="LATEST VERSION"
                                                         SortMemberPath="AvailableVersion"
-                                                        Width="1.1*">
+                                                        Width="1*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="{StaticResource SoftBlueBrush}"
@@ -318,6 +342,81 @@
                                                            FontWeight="SemiBold"
                                                            Foreground="{StaticResource PrimaryBrush}"
                                                            TextTrimming="CharacterEllipsis"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="STATUS"
+                                                        SortMemberPath="IsMajorUpdate"
+                                                        Width="1.25*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="22,0"
+                                                    Padding="9,5"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background"
+                                                                Value="#FFF7D6"/>
+                                                        <Setter Property="BorderBrush"
+                                                                Value="#F0D77A"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMajorUpdate}"
+                                                                         Value="True">
+                                                                <Setter Property="Background"
+                                                                        Value="#FDEBEC"/>
+                                                                <Setter Property="BorderBrush"
+                                                                        Value="#F1C4C8"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="6"
+                                                             Height="6"
+                                                             Margin="0,0,7,0"
+                                                             VerticalAlignment="Center">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Fill"
+                                                                        Value="#D99A00"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsMajorUpdate}"
+                                                                                 Value="True">
+                                                                        <Setter Property="Fill"
+                                                                                Value="#D64550"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+
+                                                    <TextBlock FontSize="12"
+                                                               FontWeight="SemiBold">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text"
+                                                                        Value="Update available"/>
+                                                                <Setter Property="Foreground"
+                                                                        Value="#805A00"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsMajorUpdate}"
+                                                                                 Value="True">
+                                                                        <Setter Property="Text"
+                                                                                Value="Major update"/>
+                                                                        <Setter Property="Foreground"
+                                                                                Value="#982E37"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
                                             </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
