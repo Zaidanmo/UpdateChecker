@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -39,12 +40,7 @@ public sealed class WingetService
             StartInfo = startInfo
         };
 
-        if (!process.Start())
-        {
-            throw new InvalidOperationException(
-                "WinGet could not be started."
-            );
-        }
+        StartWingetProcess(process);
 
         Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
         Task<string> errorTask = process.StandardError.ReadToEndAsync();
@@ -80,12 +76,26 @@ public sealed class WingetService
         if (exitCode == 0)
             return;
         
-        string message = $"WinGet exited with code {exitCode}.";
+        throw new WingetCommandException(exitCode, error.Trim());
+    }
 
-        if (!string.IsNullOrWhiteSpace(error))
-            message += $"{Environment.NewLine}{Environment.NewLine}{error.Trim()}";
-
-        throw new InvalidOperationException(message);
+    private static void StartWingetProcess(Process process)
+    {
+        try
+        {
+            if (!process.Start())
+            {
+                throw new WingetUnavailableException();
+            }
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode is 2 or 3)
+        {
+            throw new WingetUnavailableException(exception);
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 5)
+        {
+            throw new WingetAccessDeniedException(exception);
+        }
     }
 
     private static string ResolveWingetPath()

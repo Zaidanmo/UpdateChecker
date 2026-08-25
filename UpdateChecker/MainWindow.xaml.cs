@@ -69,15 +69,64 @@ public partial class MainWindow : Window
                 ? "Update check cancelled."
                 : "Update check timed out. Please try again.";
         }
+        catch (WingetUnavailableException)
+        {
+            StatusTextBlock.Text = "WinGet is not available on this PC.";
+
+            ShowUpdateCheckMessage(
+                "WinGet is required to check for application updates. " +
+                "Install Microsoft App Installer from the Microsoft Store, " +
+                "then restart this app.",
+                "WinGet is not available",
+                MessageBoxImage.Warning
+            );
+        }
+        catch (WingetAccessDeniedException)
+        {
+            StatusTextBlock.Text = "Windows blocked access to WinGet.";
+
+            ShowUpdateCheckMessage(
+                "Windows prevented this app from starting WinGet. " +
+                "Check your security policy or contact your administrator, " +
+                "then try again.",
+                "WinGet access was denied",
+                MessageBoxImage.Warning
+            );
+        }
+        catch (WingetCommandException exception)
+        {
+            StatusTextBlock.Text = "WinGet could not complete the update check.";
+
+            string details = GetSafeErrorDetails(exception.Details);
+            string message =
+                "WinGet could not complete the scan. Check your internet " +
+                "connection and WinGet sources, then try again." +
+                $"{Environment.NewLine}{Environment.NewLine}" +
+                $"Exit code: {exception.ExitCode}";
+
+            if (!string.IsNullOrWhiteSpace(details))
+            {
+                message +=
+                    $"{Environment.NewLine}{Environment.NewLine}" +
+                    $"Details: {details}";
+            }
+
+            ShowUpdateCheckMessage(
+                message,
+                "Update check could not be completed",
+                MessageBoxImage.Warning
+            );
+        }
         catch (Exception exception)
         {
-            StatusTextBlock.Text = "The update check failed.";
+            StatusTextBlock.Text = "An unexpected error interrupted the update check.";
 
-            MessageBox.Show(
-                this,
-                exception.Message,
-                "Update check failed",
-                MessageBoxButton.OK,
+            ShowUpdateCheckMessage(
+                "An unexpected error occurred while checking for updates. " +
+                "Please try again." +
+                $"{Environment.NewLine}{Environment.NewLine}" +
+                $"Details: {GetSafeErrorDetails(exception.Message)}",
+                "Unexpected update-check error",
                 MessageBoxImage.Error
             );
         }
@@ -109,5 +158,30 @@ public partial class MainWindow : Window
     {
         _updateCheckCancellation?.Cancel();
         base.OnClosed(e);
+    }
+
+    private void ShowUpdateCheckMessage(string message, string title, MessageBoxImage icon)
+    {
+        MessageBox.Show(
+            this,
+            message,
+            title,
+            MessageBoxButton.OK,
+            icon
+        );
+    }
+
+    private static string GetSafeErrorDetails(string details)
+    {
+        const int maximumLength = 500;
+
+        string normalizedDetails = details
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Trim();
+
+        return normalizedDetails.Length <= maximumLength
+            ? normalizedDetails
+            : $"{normalizedDetails[..maximumLength]}...";
     }
 }
