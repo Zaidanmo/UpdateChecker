@@ -217,7 +217,7 @@
                                FontSize="26"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextBrush}"/>
-                    <TextBlock Text="Keep your installed applications current and secure."
+                    <TextBlock Text="Keep your installed applications up-to-date and secure."
                                Margin="0,6,0,0"
                                FontSize="14"
                                Foreground="{StaticResource MutedTextBrush}"/>
