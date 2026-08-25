@@ -64,25 +64,28 @@ public sealed class WingetService
                     .WaitForExitAsync(CancellationToken.None)
                     .ConfigureAwait(false);
             }
-
             throw;
         }
 
         string output = await outputTask.ConfigureAwait(false);
         string error = await errorTask.ConfigureAwait(false);
 
-        IReadOnlyList<AppUpdateInfo> updates = ParseOutput(output);
+        EnsureSuccessfulExit(process.ExitCode, error);
 
-        if (process.ExitCode != 0 &&
-            updates.Count == 0 &&
-            !string.IsNullOrWhiteSpace(error))
-        {
-            throw new InvalidOperationException(
-                $"WinGet returned an error:{Environment.NewLine}{error.Trim()}"
-            );
-        }
+        return ParseOutput(output);
+    }
 
-        return updates;
+    private static void EnsureSuccessfulExit(int exitCode, string error)
+    {
+        if (exitCode == 0)
+            return;
+        
+        string message = $"WinGet exited with code {exitCode}.";
+
+        if (!string.IsNullOrWhiteSpace(error))
+            message += $"{Environment.NewLine}{Environment.NewLine}{error.Trim()}";
+
+        throw new InvalidOperationException(message);
     }
 
     private static string ResolveWingetPath()
@@ -127,9 +130,7 @@ public sealed class WingetService
         );
 
         if (headerIndex < 0)
-        {
             return Array.Empty<AppUpdateInfo>();
-        }
 
         string header = lines[headerIndex];
 
