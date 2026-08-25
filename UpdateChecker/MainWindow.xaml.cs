@@ -70,5 +70,9 @@ public partial class MainWindow : Window
         LoadingProgressBar.Visibility = isLoading
             ? Visibility.Visible
             : Visibility.Collapsed;
+
+        EmptyStatePanel.Visibility = !isLoading && _updates.Count == 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 }
