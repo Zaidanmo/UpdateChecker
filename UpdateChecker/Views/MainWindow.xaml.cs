@@ -1,9 +1,10 @@
 ﻿using System.Windows;
-using System.Windows.Media;
+using System.Windows.Automation;
+using System.Windows.Shapes;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
-namespace UpdateChecker;
+namespace UpdateChecker.Views;
 
 public partial class MainWindow : Window
 {
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     private readonly WingetService _wingetService = new();
     private CancellationTokenSource? _updateCheckCancellation;
     private bool _cancelRequestedByUser;
+    private bool _isSettingsOpen;
 
     private IReadOnlyList<AppUpdateInfo> _updates =
         Array.Empty<AppUpdateInfo>();
@@ -30,8 +32,52 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        SourceInitialized += MainWindow_SourceInitialized;
+        Activated += MainWindow_Activated;
+        Deactivated += MainWindow_Deactivated;
+        ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
+
         UpdatesDataGrid.ItemsSource = _updates;
+        ShowSettings(show: false);
         ApplyState(UpdateCheckState.Ready);
+    }
+
+    private void SettingsNavigationButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        ShowSettings(!_isSettingsOpen);
+    }
+
+    private void MainWindow_SourceInitialized(
+        object? sender,
+        EventArgs e)
+    {
+        ApplyTitleBarTheme(IsActive);
+    }
+
+    private void MainWindow_Activated(object? sender, EventArgs e)
+    {
+        ApplyTitleBarTheme(isActive: true);
+    }
+
+    private void MainWindow_Deactivated(object? sender, EventArgs e)
+    {
+        ApplyTitleBarTheme(isActive: false);
+    }
+
+    private void ThemeManager_ThemeChanged(AppTheme theme)
+    {
+        ApplyTitleBarTheme(IsActive);
+    }
+
+    private void ApplyTitleBarTheme(bool isActive)
+    {
+        WindowTitleBarService.Apply(
+            this,
+            ThemeManager.CurrentTheme,
+            isActive
+        );
     }
 
     private async void CheckUpdatesButton_Click(
@@ -193,6 +239,7 @@ public partial class MainWindow : Window
             _ => "Check for updates"
         };
         CheckUpdatesButton.IsEnabled = state != UpdateCheckState.Cancelling;
+        SettingsNavigationButton.IsEnabled = !isBusy;
 
         LoadingSpinner.Visibility = isBusy
             ? Visibility.Visible
@@ -265,11 +312,48 @@ public partial class MainWindow : Window
         StatusTextBlock.Text = statusMessage ?? defaultStatus;
         EmptyStateTitleTextBlock.Text = emptyTitle;
         EmptyStateDescriptionTextBlock.Text = emptyDescription;
-        StatusIndicator.Fill = (Brush)FindResource(brushKey);
+        StatusIndicator.SetResourceReference(Shape.FillProperty, brushKey);
+    }
+
+    private void ShowSettings(bool show)
+    {
+        _isSettingsOpen = show;
+
+        UpdatesPagePanel.Visibility = show
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        SettingsPage.Visibility = show
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        CheckUpdatesButton.Visibility = show
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        SettingsNavigationButton.Margin = show
+            ? new Thickness(0)
+            : new Thickness(0, 0, 12, 0);
+
+        string navigationDescription = show
+            ? "Return to updates"
+            : "Open settings";
+        SettingsNavigationButton.ToolTip = navigationDescription;
+
+        AutomationProperties.SetName(
+            SettingsNavigationButton,
+            navigationDescription
+        );
+
+        if (show)
+        {
+            SettingsPage.RefreshThemeChoice();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        Activated -= MainWindow_Activated;
+        Deactivated -= MainWindow_Deactivated;
+        ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
         _updateCheckCancellation?.Cancel();
         base.OnClosed(e);
     }

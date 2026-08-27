@@ -1,0 +1,107 @@
+<UserControl x:Class="UpdateChecker.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid Margin="34,26,34,30">
+        <Border Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="16">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="22"
+                                  ShadowDepth="4"
+                                  Direction="270"
+                                  Color="{DynamicResource CardShadowColor}"
+                                  Opacity="0.08"/>
+            </Border.Effect>
+
+            <Grid Margin="28,26">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="26"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="Settings"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}"/>
+                    <TextBlock Text="Customize how App Update Checker looks and behaves."
+                               Margin="0,6,0,0"
+                               FontSize="13.5"
+                               Foreground="{DynamicResource MutedTextBrush}"/>
+                </StackPanel>
+
+                <Border Grid.Row="2"
+                        Background="{DynamicResource FooterBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="13"
+                        Padding="22,20">
+                    <StackPanel>
+                        <TextBlock Text="Appearance"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextBrush}"/>
+                        <TextBlock Text="Choose the color theme used throughout the app."
+                                   Margin="0,5,0,0"
+                                   FontSize="12.5"
+                                   Foreground="{DynamicResource MutedTextBrush}"/>
+
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <RadioButton x:Name="LightThemeRadioButton"
+                                         Grid.Column="0"
+                                         GroupName="ThemeChoice"
+                                         Style="{StaticResource ThemeChoiceRadioButtonStyle}"
+                                         Checked="LightThemeRadioButton_Checked"
+                                         AutomationProperties.Name="Use light theme">
+                                <StackPanel>
+                                    <TextBlock Text="Light"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="Bright surfaces with dark text"
+                                               Margin="0,4,0,0"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton x:Name="DarkThemeRadioButton"
+                                         Grid.Column="2"
+                                         GroupName="ThemeChoice"
+                                         Style="{StaticResource ThemeChoiceRadioButtonStyle}"
+                                         Checked="DarkThemeRadioButton_Checked"
+                                         AutomationProperties.Name="Use dark theme">
+                                <StackPanel>
+                                    <TextBlock Text="Dark"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="Dimmed surfaces for low-light use"
+                                               Margin="0,4,0,0"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="3"
+                           Text="More settings will be added here soon. why are u lookin through the old git commits O_O"
+                           Margin="0,18,0,0"
+                           FontSize="12"
+                           Foreground="{DynamicResource TertiaryTextBrush}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

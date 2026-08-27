@@ -21,4 +21,22 @@
         <ProjectReference Include="..\UpdateChecker\UpdateChecker.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="..\UpdateChecker\Themes\LightTheme.xaml"
+              Link="Themes\LightTheme.xaml"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\UpdateChecker\Themes\DarkTheme.xaml"
+              Link="Themes\DarkTheme.xaml"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\UpdateChecker\Themes\Controls.xaml"
+              Link="Themes\Controls.xaml"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\UpdateChecker\Views\MainWindow.xaml"
+              Link="Views\MainWindow.xaml"
+              CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\UpdateChecker\Views\SettingsView.xaml"
+              Link="Views\SettingsView.xaml"
+              CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>
