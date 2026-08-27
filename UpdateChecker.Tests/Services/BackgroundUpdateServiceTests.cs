@@ -141,6 +141,7 @@ public sealed class BackgroundUpdateServiceTests
                 completion.Status
             );
             Assert.Equal([expectedUpdate], completion.Updates);
+            Assert.NotNull(settings.Current.LastSuccessfulCheckUtc);
         }
         finally
         {

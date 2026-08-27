@@ -384,7 +384,7 @@
                                      Fill="{DynamicResource PrimaryBrush}"
                                      VerticalAlignment="Center"/>
                             <TextBlock x:Name="StatusTextBlock"
-                                       Text="Ready to check for updates."
+                                       Text="Last checked: Never"
                                        FontSize="12.5"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        VerticalAlignment="Center"/>

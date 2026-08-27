@@ -121,10 +121,21 @@ internal sealed class UserSettingsManager : IUserSettingsStore
         });
     }
 
-    public void RecordNotifiedUpdateFingerprint(string? fingerprint)
+    public void RecordSuccessfulCheck(DateTimeOffset checkedAtUtc)
     {
         UpdateMetadata(settings => settings with
         {
+            LastSuccessfulCheckUtc = checkedAtUtc.ToUniversalTime()
+        });
+    }
+
+    public void RecordTrayCheckResult(
+        DateTimeOffset checkedAtUtc,
+        string? fingerprint)
+    {
+        UpdateMetadata(settings => settings with
+        {
+            LastSuccessfulCheckUtc = checkedAtUtc.ToUniversalTime(),
             LastNotifiedUpdateFingerprint = fingerprint
         });
     }
@@ -136,6 +147,7 @@ internal sealed class UserSettingsManager : IUserSettingsStore
         UpdateMetadata(settings => settings with
         {
             LastAutomaticCheckUtc = checkedAtUtc.ToUniversalTime(),
+            LastSuccessfulCheckUtc = checkedAtUtc.ToUniversalTime(),
             LastNotifiedUpdateFingerprint = fingerprint
         });
     }
@@ -222,6 +234,8 @@ internal sealed class UserSettingsManager : IUserSettingsStore
                     ? settings.AutomaticCheckInterval
                     : AutomaticCheckInterval.Daily,
             LastAutomaticCheckUtc = settings.LastAutomaticCheckUtc?
+                .ToUniversalTime(),
+            LastSuccessfulCheckUtc = settings.LastSuccessfulCheckUtc?
                 .ToUniversalTime(),
             LastNotifiedUpdateFingerprint = string.IsNullOrWhiteSpace(
                 settings.LastNotifiedUpdateFingerprint

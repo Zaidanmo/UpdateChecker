@@ -35,6 +35,8 @@ public sealed class UserSettingsManagerTests
                 AutomaticCheckInterval.EveryTwelveHours,
             LastAutomaticCheckUtc =
                 new DateTimeOffset(2026, 8, 27, 10, 0, 0, TimeSpan.Zero),
+            LastSuccessfulCheckUtc =
+                new DateTimeOffset(2026, 8, 27, 10, 0, 0, TimeSpan.Zero),
             LastNotifiedUpdateFingerprint = "ABC123"
         };
 
@@ -153,6 +155,10 @@ public sealed class UserSettingsManagerTests
             Assert.Equal(
                 checkedAt.ToUniversalTime(),
                 reloaded.Current.LastAutomaticCheckUtc
+            );
+            Assert.Equal(
+                checkedAt.ToUniversalTime(),
+                reloaded.Current.LastSuccessfulCheckUtc
             );
             Assert.Equal(
                 "ABC123",

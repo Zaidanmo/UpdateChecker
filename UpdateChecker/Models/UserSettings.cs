@@ -22,6 +22,8 @@ internal sealed record UserSettings
 
     public DateTimeOffset? LastAutomaticCheckUtc { get; init; }
 
+    public DateTimeOffset? LastSuccessfulCheckUtc { get; init; }
+
     public string? LastNotifiedUpdateFingerprint { get; init; }
 }
 

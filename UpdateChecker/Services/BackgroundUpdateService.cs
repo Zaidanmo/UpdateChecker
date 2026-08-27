@@ -147,7 +147,10 @@ internal sealed class BackgroundUpdateService : IDisposable
             }
             else
             {
-                _settingsStore.RecordNotifiedUpdateFingerprint(fingerprint);
+                _settingsStore.RecordTrayCheckResult(
+                    _utcNow(),
+                    fingerprint
+                );
                 TrayCheckCompleted?.Invoke(new TrayUpdateCheckResult(
                     TrayUpdateCheckStatus.Succeeded,
                     updates

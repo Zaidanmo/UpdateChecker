@@ -112,7 +112,12 @@ public sealed class UpdateSchedulerTests
         public void RecordAutomaticCheck(DateTimeOffset checkedAtUtc) =>
             throw new NotSupportedException();
 
-        public void RecordNotifiedUpdateFingerprint(string? fingerprint) =>
+        public void RecordSuccessfulCheck(DateTimeOffset checkedAtUtc) =>
+            throw new NotSupportedException();
+
+        public void RecordTrayCheckResult(
+            DateTimeOffset checkedAtUtc,
+            string? fingerprint) =>
             throw new NotSupportedException();
 
         public void RecordAutomaticCheckResult(

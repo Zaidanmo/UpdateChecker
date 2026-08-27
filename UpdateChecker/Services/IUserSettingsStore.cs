@@ -18,7 +18,11 @@ internal interface IUserSettingsStore
 
     void RecordAutomaticCheck(DateTimeOffset checkedAtUtc);
 
-    void RecordNotifiedUpdateFingerprint(string? fingerprint);
+    void RecordSuccessfulCheck(DateTimeOffset checkedAtUtc);
+
+    void RecordTrayCheckResult(
+        DateTimeOffset checkedAtUtc,
+        string? fingerprint);
 
     void RecordAutomaticCheckResult(
         DateTimeOffset checkedAtUtc,

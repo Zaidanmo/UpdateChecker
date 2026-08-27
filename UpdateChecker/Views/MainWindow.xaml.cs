@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Shapes;
+using System.Globalization;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
@@ -108,6 +109,9 @@ public partial class MainWindow : Window
                     cancellation.Token
                 );
 
+            App.CurrentApp.UserSettings.RecordSuccessfulCheck(
+                DateTimeOffset.UtcNow
+            );
             ApplyUpdateResults(updates);
         }
         catch (UpdateCheckTimedOutException)
@@ -190,7 +194,10 @@ public partial class MainWindow : Window
             state switch
             {
                 UpdateCheckState.Ready => (
-                    "Ready to check for updates.",
+                    FormatLastSuccessfulCheck(
+                        App.CurrentApp.UserSettings.Current
+                            .LastSuccessfulCheckUtc
+                    ),
                     "Nothing to show yet",
                     "Run an update check to find newer app versions.",
                     "StatusReadyBrush"
@@ -398,6 +405,21 @@ public partial class MainWindow : Window
             MessageBoxButton.OK,
             icon
         );
+    }
+
+    internal static string FormatLastSuccessfulCheck(
+        DateTimeOffset? checkedAtUtc,
+        CultureInfo? culture = null)
+    {
+        if (checkedAtUtc is null)
+        {
+            return "Last checked: Never";
+        }
+
+        string formatted = checkedAtUtc.Value
+            .ToLocalTime()
+            .ToString("g", culture ?? CultureInfo.CurrentCulture);
+        return $"Last checked: {formatted}";
     }
 
 }
