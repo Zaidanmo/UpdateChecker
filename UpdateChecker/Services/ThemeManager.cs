@@ -1,26 +1,21 @@
-using System.IO;
 using System.Windows;
+using UpdateChecker.Models;
 
 namespace UpdateChecker.Services;
-
-internal enum AppTheme
-{
-    Light,
-    Dark
-}
 
 internal static class ThemeManager
 {
     private const string ThemeDictionaryPrefix = "Themes/";
-    private const string PreferenceFileName = "theme.txt";
+    private static IUserSettingsStore? _settingsStore;
 
     public static AppTheme CurrentTheme { get; private set; } = AppTheme.Light;
 
     public static event Action<AppTheme>? ThemeChanged;
 
-    public static void Initialize()
+    public static void Initialize(IUserSettingsStore settingsStore)
     {
-        Apply(LoadPreference(), persist: false);
+        _settingsStore = settingsStore;
+        Apply(settingsStore.Current.Theme, persist: false);
     }
 
     public static void SetTheme(AppTheme theme)
@@ -31,16 +26,10 @@ internal static class ThemeManager
         }
     }
 
-    internal static AppTheme ParsePreference(string? value)
-    {
-        return Enum.TryParse(value, ignoreCase: true, out AppTheme theme)
-            ? theme
-            : AppTheme.Light;
-    }
-
     private static void Apply(AppTheme theme, bool persist)
     {
-        ResourceDictionary resources = Application.Current.Resources;
+        ResourceDictionary resources =
+            System.Windows.Application.Current.Resources;
         ResourceDictionary newTheme = new()
         {
             Source = new Uri(
@@ -67,7 +56,7 @@ internal static class ThemeManager
 
         if (persist)
         {
-            SavePreference(theme);
+            _settingsStore?.SetTheme(theme);
         }
     }
 
@@ -94,52 +83,4 @@ internal static class ThemeManager
         return -1;
     }
 
-    private static AppTheme LoadPreference()
-    {
-        try
-        {
-            return File.Exists(PreferenceFilePath)
-                ? ParsePreference(File.ReadAllText(PreferenceFilePath).Trim())
-                : AppTheme.Light;
-        }
-        catch (IOException)
-        {
-            return AppTheme.Light;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return AppTheme.Light;
-        }
-    }
-
-    private static void SavePreference(AppTheme theme)
-    {
-        try
-        {
-            string? directory = Path.GetDirectoryName(PreferenceFilePath);
-
-            if (directory is not null)
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            File.WriteAllText(PreferenceFilePath, theme.ToString());
-        }
-        catch (IOException)
-        {
-            // Theme persistence is optional; the active theme still applies.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Theme persistence is optional; the active theme still applies.
-        }
-    }
-
-    private static string PreferenceFilePath => Path.Combine(
-        Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData
-        ),
-        "UpdateChecker",
-        PreferenceFileName
-    );
 }

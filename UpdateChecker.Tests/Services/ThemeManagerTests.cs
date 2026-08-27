@@ -1,4 +1,4 @@
-using UpdateChecker.Services;
+using UpdateChecker.Models;
 using Xunit;
 
 namespace UpdateChecker.Tests.Services;
@@ -12,10 +12,10 @@ public sealed class ThemeManagerTests
     [InlineData("dark", "Dark")]
     [InlineData("unsupported", "Light")]
     [InlineData(null, "Light")]
-    public void ParsePreference_ReturnsSafeTheme(
+    public void Parse_ReturnsSafeTheme(
         string? value,
         string expected)
     {
-        Assert.Equal(expected, ThemeManager.ParsePreference(value).ToString());
+        Assert.Equal(expected, AppThemeParser.Parse(value).ToString());
     }
 }

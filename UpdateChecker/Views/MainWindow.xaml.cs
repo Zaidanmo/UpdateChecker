@@ -20,9 +20,9 @@ public partial class MainWindow : Window
         Error
     }
 
-    private readonly WingetService _wingetService = new();
+    private readonly UpdateCheckService _updateCheckService;
     private CancellationTokenSource? _updateCheckCancellation;
-    private bool _cancelRequestedByUser;
+    private bool _isTrayCheckActive;
     private bool _isSettingsOpen;
 
     private IReadOnlyList<AppUpdateInfo> _updates =
@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        _updateCheckService = App.CurrentApp.UpdateCheckService;
 
         SourceInitialized += MainWindow_SourceInitialized;
         Activated += MainWindow_Activated;
@@ -66,7 +68,7 @@ public partial class MainWindow : Window
         ApplyTitleBarTheme(isActive: false);
     }
 
-    private void ThemeManager_ThemeChanged(AppTheme theme)
+    private void ThemeManager_ThemeChanged(AppTheme _)
     {
         ApplyTitleBarTheme(IsActive);
     }
@@ -86,18 +88,14 @@ public partial class MainWindow : Window
     {
         if (_updateCheckCancellation is { } activeCancellation)
         {
-            _cancelRequestedByUser = true;
             ApplyState(UpdateCheckState.Cancelling);
             activeCancellation.Cancel();
             return;
         }
 
-        using var cancellation = new CancellationTokenSource(
-            TimeSpan.FromSeconds(60)
-        );
+        using var cancellation = new CancellationTokenSource();
 
         _updateCheckCancellation = cancellation;
-        _cancelRequestedByUser = false;
 
         _updates = Array.Empty<AppUpdateInfo>();
         UpdatesDataGrid.ItemsSource = _updates;
@@ -106,120 +104,55 @@ public partial class MainWindow : Window
         try
         {
             IReadOnlyList<AppUpdateInfo> updates =
-                await _wingetService.GetAvailableUpdatesAsync(
+                await _updateCheckService.CheckAsync(
                     cancellation.Token
                 );
 
-            _updates = updates;
-            UpdatesDataGrid.ItemsSource = _updates;
-
-            ApplyState(
-                updates.Count == 0
-                    ? UpdateCheckState.NoUpdates
-                    : UpdateCheckState.UpdatesFound,
-                updateCount: updates.Count
-            );
+            ApplyUpdateResults(updates);
+        }
+        catch (UpdateCheckTimedOutException)
+        {
+            ApplyState(UpdateCheckState.TimedOut);
         }
         catch (OperationCanceledException)
         {
-            ApplyState(
-                _cancelRequestedByUser
-                    ? UpdateCheckState.Cancelled
-                    : UpdateCheckState.TimedOut
-            );
+            ApplyState(UpdateCheckState.Cancelled);
         }
-        catch (WingetUnavailableException)
+        catch (UpdateCheckInProgressException)
         {
             ApplyState(
-                UpdateCheckState.Error,
-                "WinGet is not available on this PC."
+                UpdateCheckState.Ready,
+                "An automatic update check is already running."
             );
 
             ShowUpdateCheckMessage(
-                "WinGet is required to check for application updates. " +
-                "Install Microsoft App Installer from the Microsoft Store, " +
-                "then restart this app.",
-                "WinGet is not available",
-                MessageBoxImage.Warning
-            );
-        }
-        catch (WingetAccessDeniedException)
-        {
-            ApplyState(
-                UpdateCheckState.Error,
-                "Windows blocked access to WinGet."
-            );
-
-            ShowUpdateCheckMessage(
-                "Windows prevented this app from starting WinGet. " +
-                "Check your security policy or contact your administrator, " +
-                "then try again.",
-                "WinGet access was denied",
-                MessageBoxImage.Warning
-            );
-        }
-        catch (WingetCommandException exception)
-        {
-            ApplyState(
-                UpdateCheckState.Error,
-                "WinGet could not complete the update check."
-            );
-
-            string details = GetSafeErrorDetails(exception.Details);
-            string message =
-                "WinGet could not complete the scan. Check your internet " +
-                "connection and WinGet sources, then try again." +
-                $"{Environment.NewLine}{Environment.NewLine}" +
-                $"Exit code: {exception.ExitCode}";
-
-            if (!string.IsNullOrWhiteSpace(details))
-            {
-                message +=
-                    $"{Environment.NewLine}{Environment.NewLine}" +
-                    $"Details: {details}";
-            }
-
-            ShowUpdateCheckMessage(
-                message,
-                "Update check could not be completed",
-                MessageBoxImage.Warning
-            );
-        }
-        catch (WingetOutputParseException)
-        {
-            ApplyState(
-                UpdateCheckState.Error,
-                "The WinGet response could not be read."
-            );
-
-            ShowUpdateCheckMessage(
-                "WinGet returned information in a format this version of " +
-                "the app does not recognize. Update WinGet and this app, " +
-                "then try again.",
-                "WinGet response could not be read",
-                MessageBoxImage.Warning
+                "App Update Checker is already scanning your applications " +
+                "in the background. Please wait for it to finish.",
+                "Update check already running",
+                MessageBoxImage.Information
             );
         }
         catch (Exception exception)
         {
+            UpdateCheckFailure failure =
+                UpdateCheckErrorMapper.FromException(exception);
+
             ApplyState(
                 UpdateCheckState.Error,
-                "An unexpected error interrupted the update check."
+                failure.StatusMessage
             );
 
             ShowUpdateCheckMessage(
-                "An unexpected error occurred while checking for updates. " +
-                "Please try again." +
-                $"{Environment.NewLine}{Environment.NewLine}" +
-                $"Details: {GetSafeErrorDetails(exception.Message)}",
-                "Unexpected update-check error",
-                MessageBoxImage.Error
+                failure.Message,
+                failure.Title,
+                failure.IsUnexpected
+                    ? MessageBoxImage.Error
+                    : MessageBoxImage.Warning
             );
         }
         finally
         {
             _updateCheckCancellation = null;
-            _cancelRequestedByUser = false;
         }
     }
 
@@ -234,11 +167,15 @@ public partial class MainWindow : Window
 
         CheckUpdatesButton.Content = state switch
         {
+            UpdateCheckState.Checking when _isTrayCheckActive =>
+                "Checking...",
             UpdateCheckState.Checking => "Cancel",
             UpdateCheckState.Cancelling => "Cancelling...",
             _ => "Check for updates"
         };
-        CheckUpdatesButton.IsEnabled = state != UpdateCheckState.Cancelling;
+        CheckUpdatesButton.IsEnabled =
+            state != UpdateCheckState.Cancelling &&
+            !_isTrayCheckActive;
         SettingsNavigationButton.IsEnabled = !isBusy;
 
         LoadingSpinner.Visibility = isBusy
@@ -345,8 +282,93 @@ public partial class MainWindow : Window
 
         if (show)
         {
-            SettingsPage.RefreshThemeChoice();
+            SettingsPage.RefreshChoices();
         }
+    }
+
+    internal void ApplyBackgroundCheckResult(
+        IReadOnlyList<AppUpdateInfo> updates)
+    {
+        if (_updateCheckCancellation is not null)
+        {
+            return;
+        }
+
+        ApplyUpdateResults(updates);
+    }
+
+    internal void BeginTrayUpdateCheck()
+    {
+        if (_updateCheckCancellation is not null || _isTrayCheckActive)
+        {
+            return;
+        }
+
+        _isTrayCheckActive = true;
+        _updates = Array.Empty<AppUpdateInfo>();
+        UpdatesDataGrid.ItemsSource = _updates;
+        ShowSettings(show: false);
+        ApplyState(UpdateCheckState.Checking);
+    }
+
+    internal void CompleteTrayUpdateCheck(TrayUpdateCheckResult result)
+    {
+        if (!_isTrayCheckActive)
+        {
+            return;
+        }
+
+        _isTrayCheckActive = false;
+
+        switch (result.Status)
+        {
+            case TrayUpdateCheckStatus.Succeeded:
+                ApplyUpdateResults(
+                    result.Updates ?? Array.Empty<AppUpdateInfo>()
+                );
+                break;
+            case TrayUpdateCheckStatus.Busy:
+                ApplyState(
+                    UpdateCheckState.Ready,
+                    "Another update check is already running."
+                );
+                break;
+            case TrayUpdateCheckStatus.TimedOut:
+                ApplyState(UpdateCheckState.TimedOut);
+                break;
+            case TrayUpdateCheckStatus.Cancelled:
+                ApplyState(UpdateCheckState.Cancelled);
+                break;
+            case TrayUpdateCheckStatus.Failed:
+                ApplyState(
+                    UpdateCheckState.Error,
+                    result.Failure?.StatusMessage
+                );
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(result),
+                    result.Status,
+                    null
+                );
+        }
+    }
+
+    internal void CancelActiveCheck()
+    {
+        _updateCheckCancellation?.Cancel();
+    }
+
+    private void ApplyUpdateResults(IReadOnlyList<AppUpdateInfo> updates)
+    {
+        _updates = updates;
+        UpdatesDataGrid.ItemsSource = _updates;
+        ApplyState(
+            updates.Count == 0
+                ? UpdateCheckState.NoUpdates
+                : UpdateCheckState.UpdatesFound,
+            updateCount: updates.Count
+        );
     }
 
     protected override void OnClosed(EventArgs e)
@@ -363,7 +385,7 @@ public partial class MainWindow : Window
         string title,
         MessageBoxImage icon)
     {
-        MessageBox.Show(
+        System.Windows.MessageBox.Show(
             this,
             message,
             title,
@@ -372,17 +394,4 @@ public partial class MainWindow : Window
         );
     }
 
-    private static string GetSafeErrorDetails(string details)
-    {
-        const int maximumLength = 500;
-
-        string normalizedDetails = details
-            .Replace('\r', ' ')
-            .Replace('\n', ' ')
-            .Trim();
-
-        return normalizedDetails.Length <= maximumLength
-            ? normalizedDetails
-            : $"{normalizedDetails[..maximumLength]}...";
-    }
 }

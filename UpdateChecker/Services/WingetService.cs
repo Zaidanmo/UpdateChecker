@@ -6,7 +6,7 @@ using UpdateChecker.Models;
 
 namespace UpdateChecker.Services;
 
-public sealed class WingetService
+internal sealed class WingetService : IUpdateSource
 {
     public async Task<IReadOnlyList<AppUpdateInfo>> GetAvailableUpdatesAsync(
         CancellationToken cancellationToken = default)
@@ -103,7 +103,7 @@ public sealed class WingetService
     {
         if (exitCode == 0)
             return;
-        
+
         throw new WingetCommandException(exitCode, error.Trim());
     }
 

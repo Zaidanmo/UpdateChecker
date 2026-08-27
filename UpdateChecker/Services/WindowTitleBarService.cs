@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using UpdateChecker.Models;
 
 namespace UpdateChecker.Services;
 
@@ -55,7 +56,7 @@ internal static class WindowTitleBarService
         );
     }
 
-    internal static uint ToColorReference(Color color)
+    internal static uint ToColorReference(System.Windows.Media.Color color)
     {
         return color.R |
                ((uint)color.G << 8) |
@@ -67,7 +68,7 @@ internal static class WindowTitleBarService
         int attribute,
         string resourceKey)
     {
-        if (Application.Current.TryFindResource(resourceKey) is not
+        if (System.Windows.Application.Current.TryFindResource(resourceKey) is not
             SolidColorBrush brush)
         {
             return;

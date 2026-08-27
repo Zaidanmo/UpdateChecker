@@ -18,8 +18,7 @@
             <Grid Margin="28,26">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="26"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="20"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -34,73 +33,184 @@
                                Foreground="{DynamicResource MutedTextBrush}"/>
                 </StackPanel>
 
-                <Border Grid.Row="2"
-                        Background="{DynamicResource FooterBackgroundBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="13"
-                        Padding="22,20">
-                    <StackPanel>
-                        <TextBlock Text="Appearance"
-                                   FontSize="17"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextBrush}"/>
-                        <TextBlock Text="Choose the color theme used throughout the app."
-                                   Margin="0,5,0,0"
-                                   FontSize="12.5"
-                                   Foreground="{DynamicResource MutedTextBrush}"/>
+                <ScrollViewer Grid.Row="2"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,4,0">
+                        <Border Background="{DynamicResource FooterBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="13"
+                                Padding="22,20">
+                            <StackPanel>
+                                <TextBlock Text="Background update checks"
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"/>
+                                <TextBlock Text="Let the app check periodically and notify you when new versions are found."
+                                           Margin="0,5,0,0"
+                                           FontSize="12.5"
+                                           Foreground="{DynamicResource MutedTextBrush}"/>
 
-                        <Grid Margin="0,18,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="14"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                                <CheckBox x:Name="AutomaticChecksCheckBox"
+                                          Margin="0,20,0,0"
+                                          Style="{StaticResource SettingsToggleSwitchStyle}"
+                                          Checked="AutomaticChecksCheckBox_Changed"
+                                          Unchecked="AutomaticChecksCheckBox_Changed"
+                                          AutomationProperties.Name="Check for updates automatically">
+                                    <StackPanel>
+                                        <TextBlock Text="Automatic update checks"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextBrush}"/>
+                                        <TextBlock Text="The app stays in the notification area and checks on your schedule."
+                                                   Margin="0,4,18,0"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource MutedTextBrush}"/>
+                                    </StackPanel>
+                                </CheckBox>
 
-                            <RadioButton x:Name="LightThemeRadioButton"
-                                         Grid.Column="0"
-                                         GroupName="ThemeChoice"
-                                         Style="{StaticResource ThemeChoiceRadioButtonStyle}"
-                                         Checked="LightThemeRadioButton_Checked"
-                                         AutomationProperties.Name="Use light theme">
-                                <StackPanel>
-                                    <TextBlock Text="Light"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextBrush}"/>
-                                    <TextBlock Text="Bright surfaces with dark text"
-                                               Margin="0,4,0,0"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource MutedTextBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
+                                <Border Height="1"
+                                        Margin="0,18"
+                                        Background="{DynamicResource BorderBrush}"/>
 
-                            <RadioButton x:Name="DarkThemeRadioButton"
-                                         Grid.Column="2"
-                                         GroupName="ThemeChoice"
-                                         Style="{StaticResource ThemeChoiceRadioButtonStyle}"
-                                         Checked="DarkThemeRadioButton_Checked"
-                                         AutomationProperties.Name="Use dark theme">
-                                <StackPanel>
-                                    <TextBlock Text="Dark"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextBrush}"/>
-                                    <TextBlock Text="Dimmed surfaces for low-light use"
-                                               Margin="0,4,0,0"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource MutedTextBrush}"/>
-                                </StackPanel>
-                            </RadioButton>
-                        </Grid>
+                                <TextBlock Text="Check frequency"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"/>
+                                <TextBlock Text="The first automatic check runs shortly after you enable this option."
+                                           Margin="0,4,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource MutedTextBrush}"/>
+
+                                <UniformGrid x:Name="IntervalOptionsPanel"
+                                             Columns="5"
+                                             Margin="0,12,0,0">
+                                    <RadioButton x:Name="HourlyIntervalRadioButton"
+                                                 Content="1 hour"
+                                                 Tag="Hourly"
+                                                 Margin="0,0,6,0"
+                                                 GroupName="AutomaticCheckInterval"
+                                                 Style="{StaticResource IntervalChoiceRadioButtonStyle}"
+                                                 Checked="IntervalRadioButton_Checked"/>
+                                    <RadioButton x:Name="SixHourIntervalRadioButton"
+                                                 Content="6 hours"
+                                                 Tag="EverySixHours"
+                                                 Margin="2,0,4,0"
+                                                 GroupName="AutomaticCheckInterval"
+                                                 Style="{StaticResource IntervalChoiceRadioButtonStyle}"
+                                                 Checked="IntervalRadioButton_Checked"/>
+                                    <RadioButton x:Name="TwelveHourIntervalRadioButton"
+                                                 Content="12 hours"
+                                                 Tag="EveryTwelveHours"
+                                                 Margin="4,0,2,0"
+                                                 GroupName="AutomaticCheckInterval"
+                                                 Style="{StaticResource IntervalChoiceRadioButtonStyle}"
+                                                 Checked="IntervalRadioButton_Checked"/>
+                                    <RadioButton x:Name="DailyIntervalRadioButton"
+                                                 Content="Daily"
+                                                 Tag="Daily"
+                                                 Margin="6,0,0,0"
+                                                 GroupName="AutomaticCheckInterval"
+                                                 Style="{StaticResource IntervalChoiceRadioButtonStyle}"
+                                                 Checked="IntervalRadioButton_Checked"/>
+                                    <RadioButton x:Name="WeeklyIntervalRadioButton"
+                                                 Content="Weekly"
+                                                 Tag="Weekly"
+                                                 Margin="6,0,0,0"
+                                                 GroupName="AutomaticCheckInterval"
+                                                 Style="{StaticResource IntervalChoiceRadioButtonStyle}"
+                                                 Checked="IntervalRadioButton_Checked"/>
+                                </UniformGrid>
+
+                                <Border Height="1"
+                                        Margin="0,18"
+                                        Background="{DynamicResource BorderBrush}"/>
+
+                                <CheckBox x:Name="RunInBackgroundCheckBox"
+                                          Style="{StaticResource SettingsToggleSwitchStyle}"
+                                          Checked="RunInBackgroundCheckBox_Changed"
+                                          Unchecked="RunInBackgroundCheckBox_Changed"
+                                          AutomationProperties.Name="Keep running in notification area">
+                                    <StackPanel>
+                                        <TextBlock Text="Keep running in notification area"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextBrush}"/>
+                                        <TextBlock Text="Closing the window hides it. Use the tray menu to reopen or fully exit."
+                                                   Margin="0,4,18,0"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource MutedTextBrush}"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Margin="0,16,0,0"
+                                Background="{DynamicResource FooterBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="13"
+                                Padding="22,20">
+                            <StackPanel>
+                                <TextBlock Text="Appearance"
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextBrush}"/>
+                                <TextBlock Text="Choose the color theme used throughout the app."
+                                           Margin="0,5,0,0"
+                                           FontSize="12.5"
+                                           Foreground="{DynamicResource MutedTextBrush}"/>
+
+                                <Grid Margin="0,18,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <RadioButton x:Name="LightThemeRadioButton"
+                                                 Grid.Column="0"
+                                                 GroupName="ThemeChoice"
+                                                 Style="{StaticResource ThemeChoiceRadioButtonStyle}"
+                                                 Checked="LightThemeRadioButton_Checked"
+                                                 AutomationProperties.Name="Use light theme">
+                                        <StackPanel>
+                                            <TextBlock Text="Light"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBlock Text="Bright surfaces with dark text"
+                                                       Margin="0,4,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource MutedTextBrush}"/>
+                                        </StackPanel>
+                                    </RadioButton>
+
+                                    <RadioButton x:Name="DarkThemeRadioButton"
+                                                 Grid.Column="2"
+                                                 GroupName="ThemeChoice"
+                                                 Style="{StaticResource ThemeChoiceRadioButtonStyle}"
+                                                 Checked="DarkThemeRadioButton_Checked"
+                                                 AutomationProperties.Name="Use dark theme">
+                                        <StackPanel>
+                                            <TextBlock Text="Dark"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBlock Text="Dimmed surfaces for low-light use"
+                                                       Margin="0,4,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource MutedTextBrush}"/>
+                                        </StackPanel>
+                                    </RadioButton>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
-
-                <TextBlock Grid.Row="3"
-                           Text="More settings will be added here soon. why are u lookin through the old git commits O_O"
-                           Margin="0,18,0,0"
-                           FontSize="12"
-                           Foreground="{DynamicResource TertiaryTextBrush}"/>
+                </ScrollViewer>
             </Grid>
         </Border>
     </Grid>

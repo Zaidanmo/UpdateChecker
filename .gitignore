@@ -13,6 +13,7 @@
 [Bb]in/
 [Oo]bj/
 artifacts/
+.artifacts/
 
 # Test results
 TestResults/
