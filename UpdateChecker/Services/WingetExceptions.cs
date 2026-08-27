@@ -27,3 +27,10 @@ public sealed class WingetCommandException : Exception
 
     public string Details { get; }
 }
+
+public sealed class WingetOutputParseException : Exception
+{
+    public WingetOutputParseException()
+        : base("WinGet returned output in an unsupported format.")
+    { }
+}

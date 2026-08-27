@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Media;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
@@ -6,6 +7,18 @@ namespace UpdateChecker;
 
 public partial class MainWindow : Window
 {
+    private enum UpdateCheckState
+    {
+        Ready,
+        Checking,
+        Cancelling,
+        UpdatesFound,
+        NoUpdates,
+        Cancelled,
+        TimedOut,
+        Error
+    }
+
     private readonly WingetService _wingetService = new();
     private CancellationTokenSource? _updateCheckCancellation;
     private bool _cancelRequestedByUser;
@@ -18,6 +31,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         UpdatesDataGrid.ItemsSource = _updates;
+        ApplyState(UpdateCheckState.Ready);
     }
 
     private async void CheckUpdatesButton_Click(
@@ -27,8 +41,7 @@ public partial class MainWindow : Window
         if (_updateCheckCancellation is { } activeCancellation)
         {
             _cancelRequestedByUser = true;
-            CheckUpdatesButton.Content = "Cancelling...";
-            CheckUpdatesButton.IsEnabled = false;
+            ApplyState(UpdateCheckState.Cancelling);
             activeCancellation.Cancel();
             return;
         }
@@ -40,11 +53,9 @@ public partial class MainWindow : Window
         _updateCheckCancellation = cancellation;
         _cancelRequestedByUser = false;
 
-        SetLoadingState(true);
-
         _updates = Array.Empty<AppUpdateInfo>();
         UpdatesDataGrid.ItemsSource = _updates;
-        StatusTextBlock.Text = "Checking for available updates...";
+        ApplyState(UpdateCheckState.Checking);
 
         try
         {
@@ -56,22 +67,27 @@ public partial class MainWindow : Window
             _updates = updates;
             UpdatesDataGrid.ItemsSource = _updates;
 
-            StatusTextBlock.Text = updates.Count switch
-            {
-                0 => "No available updates were detected.",
-                1 => "1 available update was detected.",
-                _ => $"{updates.Count} available updates were detected."
-            };
+            ApplyState(
+                updates.Count == 0
+                    ? UpdateCheckState.NoUpdates
+                    : UpdateCheckState.UpdatesFound,
+                updateCount: updates.Count
+            );
         }
         catch (OperationCanceledException)
         {
-            StatusTextBlock.Text = _cancelRequestedByUser
-                ? "Update check cancelled."
-                : "Update check timed out. Please try again.";
+            ApplyState(
+                _cancelRequestedByUser
+                    ? UpdateCheckState.Cancelled
+                    : UpdateCheckState.TimedOut
+            );
         }
         catch (WingetUnavailableException)
         {
-            StatusTextBlock.Text = "WinGet is not available on this PC.";
+            ApplyState(
+                UpdateCheckState.Error,
+                "WinGet is not available on this PC."
+            );
 
             ShowUpdateCheckMessage(
                 "WinGet is required to check for application updates. " +
@@ -83,7 +99,10 @@ public partial class MainWindow : Window
         }
         catch (WingetAccessDeniedException)
         {
-            StatusTextBlock.Text = "Windows blocked access to WinGet.";
+            ApplyState(
+                UpdateCheckState.Error,
+                "Windows blocked access to WinGet."
+            );
 
             ShowUpdateCheckMessage(
                 "Windows prevented this app from starting WinGet. " +
@@ -95,7 +114,10 @@ public partial class MainWindow : Window
         }
         catch (WingetCommandException exception)
         {
-            StatusTextBlock.Text = "WinGet could not complete the update check.";
+            ApplyState(
+                UpdateCheckState.Error,
+                "WinGet could not complete the update check."
+            );
 
             string details = GetSafeErrorDetails(exception.Details);
             string message =
@@ -117,9 +139,27 @@ public partial class MainWindow : Window
                 MessageBoxImage.Warning
             );
         }
+        catch (WingetOutputParseException)
+        {
+            ApplyState(
+                UpdateCheckState.Error,
+                "The WinGet response could not be read."
+            );
+
+            ShowUpdateCheckMessage(
+                "WinGet returned information in a format this version of " +
+                "the app does not recognize. Update WinGet and this app, " +
+                "then try again.",
+                "WinGet response could not be read",
+                MessageBoxImage.Warning
+            );
+        }
         catch (Exception exception)
         {
-            StatusTextBlock.Text = "An unexpected error interrupted the update check.";
+            ApplyState(
+                UpdateCheckState.Error,
+                "An unexpected error interrupted the update check."
+            );
 
             ShowUpdateCheckMessage(
                 "An unexpected error occurred while checking for updates. " +
@@ -134,24 +174,98 @@ public partial class MainWindow : Window
         {
             _updateCheckCancellation = null;
             _cancelRequestedByUser = false;
-            SetLoadingState(false);
         }
     }
 
-    private void SetLoadingState(bool isLoading)
+    private void ApplyState(
+        UpdateCheckState state,
+        string? statusMessage = null,
+        int updateCount = 0)
     {
-        CheckUpdatesButton.Content = isLoading
-            ? "Cancel"
-            : "Check for updates";
-        CheckUpdatesButton.IsEnabled = true;
+        bool isBusy = state is
+            UpdateCheckState.Checking or
+            UpdateCheckState.Cancelling;
 
-        LoadingProgressBar.Visibility = isLoading
+        CheckUpdatesButton.Content = state switch
+        {
+            UpdateCheckState.Checking => "Cancel",
+            UpdateCheckState.Cancelling => "Cancelling...",
+            _ => "Check for updates"
+        };
+        CheckUpdatesButton.IsEnabled = state != UpdateCheckState.Cancelling;
+
+        LoadingSpinner.Visibility = isBusy
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        EmptyStatePanel.Visibility = !isLoading && _updates.Count == 0
+        EmptyStatePanel.Visibility = !isBusy && _updates.Count == 0
             ? Visibility.Visible
             : Visibility.Collapsed;
+
+        (string defaultStatus, string emptyTitle, string emptyDescription, string brushKey) =
+            state switch
+            {
+                UpdateCheckState.Ready => (
+                    "Ready to check for updates.",
+                    "Nothing to show yet",
+                    "Run an update check to find newer app versions.",
+                    "StatusReadyBrush"
+                ),
+                UpdateCheckState.Checking => (
+                    "Checking for available updates...",
+                    "Checking for updates",
+                    "WinGet is scanning your installed applications.",
+                    "StatusReadyBrush"
+                ),
+                UpdateCheckState.Cancelling => (
+                    "Cancelling the update check...",
+                    "Cancelling",
+                    "Waiting for WinGet to close safely.",
+                    "StatusNeutralBrush"
+                ),
+                UpdateCheckState.UpdatesFound => (
+                    updateCount == 1
+                        ? "1 available update was detected."
+                        : $"{updateCount} available updates were detected.",
+                    "Updates found",
+                    "Review the available versions in the table.",
+                    "StatusWarningBrush"
+                ),
+                UpdateCheckState.NoUpdates => (
+                    "No available updates were detected.",
+                    "You're up to date",
+                    "WinGet did not find any available application updates.",
+                    "StatusSuccessBrush"
+                ),
+                UpdateCheckState.Cancelled => (
+                    "Update check cancelled.",
+                    "Update check cancelled",
+                    "Run another check whenever you're ready.",
+                    "StatusNeutralBrush"
+                ),
+                UpdateCheckState.TimedOut => (
+                    "Update check timed out. Please try again.",
+                    "The check took too long",
+                    "Check your connection, then try the update check again.",
+                    "StatusWarningBrush"
+                ),
+                UpdateCheckState.Error => (
+                    "The update check could not be completed.",
+                    "Unable to check for updates",
+                    "Review the warning, then try the update check again.",
+                    "StatusErrorBrush"
+                ),
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(state),
+                    state,
+                    null
+                )
+            };
+
+        StatusTextBlock.Text = statusMessage ?? defaultStatus;
+        EmptyStateTitleTextBlock.Text = emptyTitle;
+        EmptyStateDescriptionTextBlock.Text = emptyDescription;
+        StatusIndicator.Fill = (Brush)FindResource(brushKey);
     }
 
     protected override void OnClosed(EventArgs e)
@@ -160,7 +274,10 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
-    private void ShowUpdateCheckMessage(string message, string title, MessageBoxImage icon)
+    private void ShowUpdateCheckMessage(
+        string message,
+        string title,
+        MessageBoxImage icon)
     {
         MessageBox.Show(
             this,

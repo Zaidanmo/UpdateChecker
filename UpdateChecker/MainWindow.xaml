@@ -11,189 +11,6 @@
         Background="#EEF2F6"
         FontFamily="Segoe UI">
 
-    <Window.Resources>
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#2F6FED"/>
-        <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#245FD6"/>
-        <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#1E4FB8"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#172033"/>
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#667085"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#DCE3EC"/>
-        <SolidColorBrush x:Key="SoftBlueBrush" Color="#EDF4FF"/>
-
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="20,11"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="10"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder"
-                                        Property="Background"
-                                        Value="{StaticResource PrimaryHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder"
-                                        Property="Background"
-                                        Value="{StaticResource PrimaryPressedBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder"
-                                        Property="Background"
-                                        Value="#9EADC2"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#F8FAFC"/>
-            <Setter Property="Foreground" Value="#6B778C"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Padding" Value="22,0"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <Style TargetType="DataGridCell">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="#E8EDF3"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="MinHeight" Value="66"/>
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F7F9FC"/>
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SoftBlueBrush}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="ScrollBarPageButtonStyle"
-               TargetType="RepeatButton">
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="IsTabStop" Value="False"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RepeatButton">
-                        <Border Background="Transparent"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="ModernScrollThumbStyle"
-               TargetType="Thumb">
-            <Setter Property="MinHeight" Value="38"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="ThumbBody"
-                                Margin="3,1"
-                                Background="#B8C4D3"
-                                CornerRadius="3"/>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBody"
-                                        Property="Background"
-                                        Value="#8FA2BA"/>
-                            </Trigger>
-                            <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbBody"
-                                        Property="Background"
-                                        Value="{StaticResource PrimaryBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ScrollBar">
-            <Setter Property="Width" Value="12"/>
-            <Setter Property="MinWidth" Value="12"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollBar">
-                        <Grid Margin="0,4,2,4"
-                              Background="Transparent">
-                            <Border x:Name="TrackBackground"
-                                    Width="4"
-                                    Background="#ECF0F5"
-                                    CornerRadius="2"
-                                    HorizontalAlignment="Center"/>
-
-                            <Track x:Name="PART_Track"
-                                   IsDirectionReversed="True"
-                                   Focusable="False">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
-                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
-                                </Track.DecreaseRepeatButton>
-
-                                <Track.Thumb>
-                                    <Thumb Style="{StaticResource ModernScrollThumbStyle}"/>
-                                </Track.Thumb>
-
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}"
-                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TrackBackground"
-                                        Property="Background"
-                                        Value="#DFE6EE"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -273,7 +90,7 @@
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     VerticalAlignment="Center">
-                            <Grid x:Name="LoadingProgressBar"
+                            <Grid x:Name="LoadingSpinner"
                                   Width="26"
                                   Height="26"
                                   Margin="0,0,12,0"
@@ -313,8 +130,8 @@
                                       StrokeEndLineCap="Round"/>
                             </Grid>
 
-                            <Border Background="#FFF7D6"
-                                    BorderBrush="#F0D77A"
+                            <Border Background="{StaticResource UpdateBackgroundBrush}"
+                                    BorderBrush="{StaticResource UpdateBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="11"
                                     Padding="10,6"
@@ -323,18 +140,18 @@
                                     <Ellipse Width="6"
                                              Height="6"
                                              Margin="0,0,7,0"
-                                             Fill="#D99A00"
+                                             Fill="{StaticResource UpdateIndicatorBrush}"
                                              VerticalAlignment="Center"/>
                                     <TextBlock Text="Update available"
                                                FontSize="12"
                                                FontWeight="SemiBold"
-                                               Foreground="#805A00"/>
+                                               Foreground="{StaticResource UpdateTextBrush}"/>
                                 </StackPanel>
                             </Border>
 
                             <Border Margin="8,0,0,0"
-                                    Background="#FDEBEC"
-                                    BorderBrush="#F1C4C8"
+                                    Background="{StaticResource MajorVersionBackgroundBrush}"
+                                    BorderBrush="{StaticResource MajorVersionBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="11"
                                     Padding="10,6"
@@ -343,12 +160,12 @@
                                     <Ellipse Width="6"
                                              Height="6"
                                              Margin="0,0,7,0"
-                                             Fill="#D64550"
+                                             Fill="{StaticResource MajorVersionIndicatorBrush}"
                                              VerticalAlignment="Center"/>
-                                    <TextBlock Text="Major update"
+                                    <TextBlock Text="Major version change"
                                                FontSize="12"
                                                FontWeight="SemiBold"
-                                               Foreground="#982E37"/>
+                                               Foreground="{StaticResource MajorVersionTextBrush}"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -368,7 +185,6 @@
                                   HeadersVisibility="Column"
                                   GridLinesVisibility="None"
                                   ColumnHeaderHeight="48"
-                                  RowHeaderWidth="0"
                                   BorderThickness="0"
                                   Background="White"
                                   SelectionMode="Single"
@@ -376,7 +192,6 @@
                                   HorizontalScrollBarVisibility="Disabled"
                                   VerticalScrollBarVisibility="Auto"
                                   ScrollViewer.CanContentScroll="True"
-                                  ScrollViewer.IsDeferredScrollingEnabled="False"
                                   VirtualizingPanel.IsVirtualizing="True"
                                   VirtualizingPanel.VirtualizationMode="Recycling"
                                   VirtualizingPanel.ScrollUnit="Pixel"
@@ -445,74 +260,28 @@
                                 </DataGridTemplateColumn>
 
                                 <DataGridTemplateColumn Header="STATUS"
-                                                        SortMemberPath="IsMajorUpdate"
+                                                        SortMemberPath="HasMajorVersionChange"
                                                         Width="1.25*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Margin="22,0"
+                                             <Border Margin="22,0"
                                                     Padding="9,5"
                                                     BorderThickness="1"
                                                     CornerRadius="8"
                                                     HorizontalAlignment="Left"
-                                                    VerticalAlignment="Center">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background"
-                                                                Value="#FFF7D6"/>
-                                                        <Setter Property="BorderBrush"
-                                                                Value="#F0D77A"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsMajorUpdate}"
-                                                                         Value="True">
-                                                                <Setter Property="Background"
-                                                                        Value="#FDEBEC"/>
-                                                                <Setter Property="BorderBrush"
-                                                                        Value="#F1C4C8"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
+                                                    VerticalAlignment="Center"
+                                                    Style="{StaticResource StatusBadgeBorderStyle}">
 
                                                 <StackPanel Orientation="Horizontal">
                                                     <Ellipse Width="6"
                                                              Height="6"
                                                              Margin="0,0,7,0"
-                                                             VerticalAlignment="Center">
-                                                        <Ellipse.Style>
-                                                            <Style TargetType="Ellipse">
-                                                                <Setter Property="Fill"
-                                                                        Value="#D99A00"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsMajorUpdate}"
-                                                                                 Value="True">
-                                                                        <Setter Property="Fill"
-                                                                                Value="#D64550"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Ellipse.Style>
-                                                    </Ellipse>
+                                                             VerticalAlignment="Center"
+                                                             Style="{StaticResource StatusBadgeIndicatorStyle}"/>
 
                                                     <TextBlock FontSize="12"
-                                                               FontWeight="SemiBold">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Text"
-                                                                        Value="Update available"/>
-                                                                <Setter Property="Foreground"
-                                                                        Value="#805A00"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsMajorUpdate}"
-                                                                                 Value="True">
-                                                                        <Setter Property="Text"
-                                                                                Value="Major update"/>
-                                                                        <Setter Property="Foreground"
-                                                                                Value="#982E37"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
+                                                               FontWeight="SemiBold"
+                                                               Style="{StaticResource StatusBadgeTextStyle}"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
@@ -550,12 +319,14 @@
                                                    RadiusY="1"/>
                                     </StackPanel>
                                 </Border>
-                                <TextBlock Text="Nothing to show yet"
+                                <TextBlock x:Name="EmptyStateTitleTextBlock"
+                                           Text="Nothing to show yet"
                                            HorizontalAlignment="Center"
                                            FontSize="15"
                                            FontWeight="SemiBold"
                                            Foreground="{StaticResource TextBrush}"/>
-                                <TextBlock Text="Run an update check to find newer app versions."
+                                <TextBlock x:Name="EmptyStateDescriptionTextBlock"
+                                           Text="Run an update check to find newer app versions."
                                            Margin="0,5,0,0"
                                            HorizontalAlignment="Center"
                                            FontSize="12.5"
@@ -571,7 +342,8 @@
                             BorderThickness="0,1,0,0"
                             CornerRadius="0,0,15,15">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="7"
+                            <Ellipse x:Name="StatusIndicator"
+                                     Width="7"
                                      Height="7"
                                      Margin="0,0,9,0"
                                      Fill="{StaticResource PrimaryBrush}"
