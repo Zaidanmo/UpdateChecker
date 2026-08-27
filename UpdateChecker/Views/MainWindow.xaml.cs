@@ -269,6 +269,12 @@ public partial class MainWindow : Window
         SettingsNavigationButton.Margin = show
             ? new Thickness(0)
             : new Thickness(0, 0, 12, 0);
+        SettingsIconPath.Visibility = show
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        BackIconPath.Visibility = show
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         string navigationDescription = show
             ? "Return to updates"

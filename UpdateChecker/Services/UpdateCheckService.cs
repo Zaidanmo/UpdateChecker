@@ -11,9 +11,7 @@ internal sealed class UpdateCheckService
     private readonly TimeSpan _timeout;
     private int _isChecking;
 
-    public UpdateCheckService(
-        IUpdateSource updateSource,
-        TimeSpan? timeout = null)
+    public UpdateCheckService(IUpdateSource updateSource, TimeSpan? timeout = null)
     {
         _updateSource = updateSource;
         _timeout = timeout ?? DefaultTimeout;
