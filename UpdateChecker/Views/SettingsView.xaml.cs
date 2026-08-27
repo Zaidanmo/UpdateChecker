@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
@@ -6,11 +9,16 @@ namespace UpdateChecker.Views;
 
 public partial class SettingsView : System.Windows.Controls.UserControl
 {
+    private static readonly string ApplicationFolderPath =
+        Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+
     private bool _isSynchronizingChoices;
 
     public SettingsView()
     {
         InitializeComponent();
+        ApplicationPathTextBox.Text = ApplicationFolderPath;
+        ApplicationPathTextBox.ToolTip = ApplicationFolderPath;
     }
 
     public void RefreshChoices()
@@ -112,6 +120,40 @@ public partial class SettingsView : System.Windows.Controls.UserControl
         if (!_isSynchronizingChoices)
         {
             ThemeManager.SetTheme(theme);
+        }
+    }
+
+    private void OpenApplicationFolderButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        try
+        {
+            if (!Directory.Exists(ApplicationFolderPath))
+            {
+                throw new DirectoryNotFoundException();
+            }
+
+            _ = Process.Start(new ProcessStartInfo
+            {
+                FileName = ApplicationFolderPath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception exception)
+            when (exception is Win32Exception or
+                  InvalidOperationException or
+                  IOException or
+                  UnauthorizedAccessException)
+        {
+            System.Windows.MessageBox.Show(
+                Window.GetWindow(this),
+                "Windows could not open the application folder. " +
+                "You can copy the path from the field and open it manually.",
+                "Unable to open folder",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning
+            );
         }
     }
 }
