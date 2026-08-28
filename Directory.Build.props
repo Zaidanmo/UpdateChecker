@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!-- Keep the complete dependency graph and content hashes reproducible. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="Exists('$(MSBuildProjectDirectory)\packages.lock.json') and '$(RestoreForceEvaluate)' != 'true'">true</RestoreLockedMode>
+
+    <!-- Audit direct and transitive packages and fail on every known severity. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+</Project>
