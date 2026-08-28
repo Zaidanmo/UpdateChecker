@@ -65,6 +65,11 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        if (_mainWindow is not null)
+        {
+            _mainWindow.Closing -= MainWindow_Closing;
+        }
+
         if (_backgroundUpdateService is not null)
         {
             _backgroundUpdateService.UpdatesChecked -=
@@ -77,6 +82,7 @@ public partial class App : System.Windows.Application
         }
 
         _trayIconService?.Dispose();
+        ThemeManager.Shutdown();
         base.OnExit(e);
     }
 

@@ -26,6 +26,12 @@ internal static class ThemeManager
         }
     }
 
+    public static void Shutdown()
+    {
+        _settingsStore = null;
+        ThemeChanged = null;
+    }
+
     private static void Apply(AppTheme theme, bool persist)
     {
         ResourceDictionary resources =

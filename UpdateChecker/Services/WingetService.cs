@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +9,10 @@ namespace UpdateChecker.Services;
 
 internal sealed class WingetService : IUpdateSource
 {
+    private const int MaximumStandardOutputCharacters = 4 * 1024 * 1024;
+    private const int MaximumStandardErrorCharacters = 256 * 1024;
+    private const int ReadBufferSize = 4096;
+
     public async Task<IReadOnlyList<AppUpdateInfo>> GetAvailableUpdatesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -36,8 +41,16 @@ internal sealed class WingetService : IUpdateSource
 
         StartWingetProcess(process);
 
-        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        Task<BoundedText> outputTask = ReadBoundedAsync(
+            process.StandardOutput,
+            MaximumStandardOutputCharacters,
+            cancellationToken
+        );
+        Task<BoundedText> errorTask = ReadBoundedAsync(
+            process.StandardError,
+            MaximumStandardErrorCharacters,
+            cancellationToken
+        );
 
         try
         {
@@ -52,12 +65,60 @@ internal sealed class WingetService : IUpdateSource
             throw;
         }
 
-        string output = await outputTask.ConfigureAwait(false);
-        string error = await errorTask.ConfigureAwait(false);
+        BoundedText output = await outputTask.ConfigureAwait(false);
+        BoundedText error = await errorTask.ConfigureAwait(false);
 
-        EnsureSuccessfulExit(process.ExitCode, error);
+        if (output.WasTruncated)
+        {
+            throw new WingetOutputLimitExceededException();
+        }
 
-        return WingetOutputParser.Parse(output);
+        EnsureSuccessfulExit(process.ExitCode, error.Value);
+
+        return WingetOutputParser.Parse(output.Value);
+    }
+
+    internal static async Task<BoundedText> ReadBoundedAsync(
+        TextReader reader,
+        int maximumCharacters,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumCharacters);
+
+        char[] buffer = ArrayPool<char>.Shared.Rent(ReadBufferSize);
+        var value = new StringBuilder(
+            capacity: Math.Min(maximumCharacters, ReadBufferSize)
+        );
+        bool wasTruncated = false;
+
+        try
+        {
+            int charactersRead;
+
+            while ((charactersRead = await reader.ReadAsync(
+                       buffer.AsMemory(0, ReadBufferSize),
+                       cancellationToken
+                   ).ConfigureAwait(false)) > 0)
+            {
+                int charactersToKeep = Math.Min(
+                    charactersRead,
+                    maximumCharacters - value.Length
+                );
+
+                if (charactersToKeep > 0)
+                {
+                    value.Append(buffer, 0, charactersToKeep);
+                }
+
+                wasTruncated |= charactersToKeep < charactersRead;
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+
+        return new BoundedText(value.ToString(), wasTruncated);
     }
 
     private static async Task StopProcessAsync(Process process)
@@ -83,7 +144,7 @@ internal sealed class WingetService : IUpdateSource
             .ConfigureAwait(false);
     }
 
-    private static async Task DrainOutputAsync(params Task<string>[] outputTasks)
+    private static async Task DrainOutputAsync(params Task[] outputTasks)
     {
         try
         {
@@ -96,6 +157,10 @@ internal sealed class WingetService : IUpdateSource
         catch (ObjectDisposedException)
         {
             // The process streams were disposed during cancellation.
+        }
+        catch (OperationCanceledException)
+        {
+            // Both stream readers use the process cancellation token.
         }
     }
 
@@ -149,3 +214,7 @@ internal sealed class WingetService : IUpdateSource
     }
 
 }
+
+internal readonly record struct BoundedText(
+    string Value,
+    bool WasTruncated);

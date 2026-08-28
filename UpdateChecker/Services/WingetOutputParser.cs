@@ -1,15 +1,11 @@
-using System.Text.RegularExpressions;
+using System.IO;
+using System.Text;
 using UpdateChecker.Models;
 
 namespace UpdateChecker.Services;
 
 internal static class WingetOutputParser
 {
-    private static readonly Regex AnsiEscapeRegex = new(
-        @"\x1B\[[0-?]*[ -/]*[@-~]",
-        RegexOptions.Compiled
-    );
-
     private static readonly string[] NoUpgradeMessages =
     {
         "No installed package found matching input criteria.",
@@ -26,19 +22,17 @@ internal static class WingetOutputParser
             return Array.Empty<AppUpdateInfo>();
         }
 
-        string[] lines = cleanedOutput.Split('\n');
-        int headerIndex = FindHeader(lines, out ColumnLayout columns);
-
-        if (headerIndex < 0)
+        using var reader = new StringReader(cleanedOutput);
+        if (!TryFindHeader(reader, out ColumnLayout columns))
         {
             throw new WingetOutputParseException();
         }
 
         var updates = new List<AppUpdateInfo>();
 
-        for (int index = headerIndex + 1; index < lines.Length; index++)
+        while (reader.ReadLine() is { } rawLine)
         {
-            string line = lines[index].TrimEnd();
+            string line = rawLine.TrimEnd();
 
             if (string.IsNullOrWhiteSpace(line) || IsSeparatorLine(line))
             {
@@ -63,10 +57,48 @@ internal static class WingetOutputParser
 
     private static string CleanOutput(string output)
     {
-        return AnsiEscapeRegex
-            .Replace(output, string.Empty)
-            .Replace("\r", string.Empty)
-            .Replace("\b", string.Empty);
+        int firstControlCharacter = output.AsSpan().IndexOfAny(
+            '\u001b',
+            '\r',
+            '\b'
+        );
+
+        if (firstControlCharacter < 0)
+        {
+            return output;
+        }
+
+        var cleaned = new StringBuilder(output.Length);
+        cleaned.Append(output, 0, firstControlCharacter);
+
+        for (int index = firstControlCharacter; index < output.Length; index++)
+        {
+            char character = output[index];
+
+            if (character is '\r' or '\b')
+            {
+                continue;
+            }
+
+            if (character == '\u001b' &&
+                index + 1 < output.Length &&
+                output[index + 1] == '[')
+            {
+                index += 2;
+
+                while (index < output.Length &&
+                       output[index] is not (>= '@' and <= '~'))
+                {
+                    index++;
+                }
+
+                continue;
+            }
+
+            cleaned.Append(character);
+        }
+
+        return cleaned.ToString();
     }
 
     private static bool ContainsNoUpgradeMessage(string output)
@@ -79,20 +111,20 @@ internal static class WingetOutputParser
         );
     }
 
-    private static int FindHeader(
-        IReadOnlyList<string> lines,
+    private static bool TryFindHeader(
+        StringReader reader,
         out ColumnLayout columns)
     {
-        for (int index = 0; index < lines.Count; index++)
+        while (reader.ReadLine() is { } line)
         {
-            if (TryGetColumnLayout(lines[index], out columns))
+            if (TryGetColumnLayout(line, out columns))
             {
-                return index;
+                return true;
             }
         }
 
         columns = default;
-        return -1;
+        return false;
     }
 
     private static bool TryGetColumnLayout(

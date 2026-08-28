@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 using Xunit;
@@ -8,6 +9,26 @@ public sealed class BackgroundUpdateServiceTests
 {
     private static readonly DateTimeOffset Now =
         new(2026, 8, 27, 12, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public async Task StopAsync_ReleasesEventSubscribers()
+    {
+        var settings = new UserSettingsManager(
+            Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.json"),
+            Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.txt")
+        );
+        var service = new BackgroundUpdateService(
+            new UpdateCheckService(new FixedUpdateSource([])),
+            settings,
+            new SilentNotificationSink()
+        );
+        WeakReference subscriberReference = SubscribeObserver(service);
+
+        await service.StopAsync();
+        ForceFullCollection();
+
+        Assert.False(subscriberReference.IsAlive);
+    }
 
     [Fact]
     public void CalculateNextDelay_NewScheduleStartsShortly()
@@ -187,6 +208,39 @@ public sealed class BackgroundUpdateServiceTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_updates);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference SubscribeObserver(
+        BackgroundUpdateService service)
+    {
+        var observer = new BackgroundServiceObserver();
+        service.UpdatesChecked += observer.OnUpdatesChecked;
+        service.TrayCheckStarted += observer.OnTrayCheckStarted;
+        service.TrayCheckCompleted += observer.OnTrayCheckCompleted;
+        return new WeakReference(observer);
+    }
+
+    private static void ForceFullCollection()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+    }
+
+    private sealed class BackgroundServiceObserver
+    {
+        public void OnUpdatesChecked(IReadOnlyList<AppUpdateInfo> updates)
+        {
+        }
+
+        public void OnTrayCheckStarted()
+        {
+        }
+
+        public void OnTrayCheckCompleted(TrayUpdateCheckResult result)
+        {
         }
     }
 

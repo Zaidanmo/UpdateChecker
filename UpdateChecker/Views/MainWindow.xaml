@@ -286,6 +286,8 @@
                                   Background="{DynamicResource SurfaceBrush}"
                                   SelectionMode="Single"
                                   SelectionUnit="FullRow"
+                                  EnableRowVirtualization="True"
+                                  EnableColumnVirtualization="True"
                                   HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   ScrollViewer.CanContentScroll="True"

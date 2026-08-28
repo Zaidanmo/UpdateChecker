@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.ComponentModel;
 using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Shapes;
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
 
     private readonly UpdateCheckService _updateCheckService;
     private readonly DispatcherTimer _relativeTimeRefreshTimer;
+    private readonly List<SortDescription> _updateSortDescriptions = [];
     private CancellationTokenSource? _updateCheckCancellation;
     private bool _isTrayCheckActive;
     private bool _isSettingsOpen;
@@ -44,14 +46,14 @@ public partial class MainWindow : Window
         };
         _relativeTimeRefreshTimer.Tick +=
             RelativeTimeRefreshTimer_Tick;
-        _relativeTimeRefreshTimer.Start();
 
         SourceInitialized += MainWindow_SourceInitialized;
+        IsVisibleChanged += MainWindow_IsVisibleChanged;
         Activated += MainWindow_Activated;
         Deactivated += MainWindow_Deactivated;
         ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
 
-        UpdatesDataGrid.ItemsSource = _updates;
+        UpdateDataGridItemsSource();
         ShowSettings(show: false);
         ApplyState(UpdateCheckState.Ready);
     }
@@ -115,8 +117,7 @@ public partial class MainWindow : Window
         _updateCheckCancellation = cancellation;
         HideInlineError();
 
-        _updates = Array.Empty<AppUpdateInfo>();
-        UpdatesDataGrid.ItemsSource = _updates;
+        SetUpdates(Array.Empty<AppUpdateInfo>());
         ApplyState(UpdateCheckState.Checking);
         App.CurrentApp.SetTrayStatus(TrayIconStatus.Checking);
 
@@ -361,8 +362,7 @@ public partial class MainWindow : Window
         }
 
         _isTrayCheckActive = true;
-        _updates = Array.Empty<AppUpdateInfo>();
-        UpdatesDataGrid.ItemsSource = _updates;
+        SetUpdates(Array.Empty<AppUpdateInfo>());
         ShowSettings(show: false);
         ApplyState(UpdateCheckState.Checking);
     }
@@ -428,8 +428,7 @@ public partial class MainWindow : Window
     private void ApplyUpdateResults(IReadOnlyList<AppUpdateInfo> updates)
     {
         HideInlineError();
-        _updates = updates;
-        UpdatesDataGrid.ItemsSource = _updates;
+        SetUpdates(updates);
         ApplyState(
             updates.Count == 0
                 ? UpdateCheckState.NoUpdates
@@ -443,11 +442,81 @@ public partial class MainWindow : Window
         _relativeTimeRefreshTimer.Stop();
         _relativeTimeRefreshTimer.Tick -=
             RelativeTimeRefreshTimer_Tick;
+        SourceInitialized -= MainWindow_SourceInitialized;
+        IsVisibleChanged -= MainWindow_IsVisibleChanged;
         Activated -= MainWindow_Activated;
         Deactivated -= MainWindow_Deactivated;
         ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
         _updateCheckCancellation?.Cancel();
+        DetachUpdateDataGridItemsSource();
+        _updates = Array.Empty<AppUpdateInfo>();
         base.OnClosed(e);
+    }
+
+    private void MainWindow_IsVisibleChanged(
+        object sender,
+        DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true)
+        {
+            UpdateDataGridItemsSource();
+            RelativeTimeRefreshTimer_Tick(this, EventArgs.Empty);
+            _relativeTimeRefreshTimer.Start();
+            return;
+        }
+
+        _relativeTimeRefreshTimer.Stop();
+        DetachUpdateDataGridItemsSource();
+    }
+
+    private void SetUpdates(IReadOnlyList<AppUpdateInfo> updates)
+    {
+        CaptureUpdateSortDescriptions();
+        _updates = updates;
+        UpdateDataGridItemsSource();
+    }
+
+    private void UpdateDataGridItemsSource()
+    {
+        if (!IsVisible)
+        {
+            DetachUpdateDataGridItemsSource();
+            return;
+        }
+
+        if (ReferenceEquals(UpdatesDataGrid.ItemsSource, _updates))
+        {
+            return;
+        }
+
+        UpdatesDataGrid.ItemsSource = _updates;
+
+        foreach (SortDescription sort in _updateSortDescriptions)
+        {
+            UpdatesDataGrid.Items.SortDescriptions.Add(sort);
+        }
+    }
+
+    private void DetachUpdateDataGridItemsSource()
+    {
+        CaptureUpdateSortDescriptions();
+        UpdatesDataGrid.ItemsSource = null;
+    }
+
+    private void CaptureUpdateSortDescriptions()
+    {
+        if (UpdatesDataGrid.ItemsSource is null)
+        {
+            return;
+        }
+
+        _updateSortDescriptions.Clear();
+
+        foreach (SortDescription sort in
+                 UpdatesDataGrid.Items.SortDescriptions)
+        {
+            _updateSortDescriptions.Add(sort);
+        }
     }
 
     private void RelativeTimeRefreshTimer_Tick(

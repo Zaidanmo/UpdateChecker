@@ -40,6 +40,13 @@ internal static class UpdateCheckErrorMapper
                 "then try again.",
                 "Update WinGet and App Update Checker, then try again."
             ),
+            WingetOutputLimitExceededException => new UpdateCheckFailure(
+                "WinGet returned too much information.",
+                "WinGet response was too large",
+                "WinGet returned more information than the app can safely " +
+                "process. Restart WinGet and try again.",
+                "WinGet returned too much information. Try again later."
+            ),
             _ => new UpdateCheckFailure(
                 "An unexpected error interrupted the update check.",
                 "Unexpected update-check error",

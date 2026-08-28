@@ -14,6 +14,7 @@ internal sealed class BackgroundUpdateService : IDisposable
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly HashSet<Task> _activeTrayChecks = [];
 
+    private int _lifetimeCancellationDisposed;
     private bool _disposed;
 
     public BackgroundUpdateService(
@@ -81,6 +82,7 @@ internal sealed class BackgroundUpdateService : IDisposable
             _disposed = true;
             _lifetimeCancellation.Cancel();
             activeTrayChecks = [.. _activeTrayChecks];
+            ClearSubscribers();
         }
 
         await _scheduler.StopAsync().ConfigureAwait(false);
@@ -94,11 +96,18 @@ internal sealed class BackgroundUpdateService : IDisposable
             // Active tray checks are cancelled during shutdown.
         }
 
-        _lifetimeCancellation.Dispose();
+        lock (_syncRoot)
+        {
+            _activeTrayChecks.Clear();
+        }
+
+        DisposeLifetimeCancellation();
     }
 
     public void Dispose()
     {
+        bool canDisposeCancellation;
+
         lock (_syncRoot)
         {
             if (_disposed)
@@ -108,9 +117,34 @@ internal sealed class BackgroundUpdateService : IDisposable
 
             _disposed = true;
             _lifetimeCancellation.Cancel();
+            ClearSubscribers();
+            canDisposeCancellation = _activeTrayChecks.Count == 0;
         }
 
         _scheduler.Dispose();
+
+        if (canDisposeCancellation)
+        {
+            DisposeLifetimeCancellation();
+        }
+    }
+
+    private void ClearSubscribers()
+    {
+        UpdatesChecked = null;
+        TrayCheckStarted = null;
+        TrayCheckCompleted = null;
+    }
+
+    private void DisposeLifetimeCancellation()
+    {
+        if (Interlocked.Exchange(
+                ref _lifetimeCancellationDisposed,
+                1
+            ) == 0)
+        {
+            _lifetimeCancellation.Dispose();
+        }
     }
 
     private Task<ScheduledRunOutcome> RunScheduledCheckAsync(
@@ -258,9 +292,18 @@ internal sealed class BackgroundUpdateService : IDisposable
         }
         finally
         {
+            bool disposeCancellation;
+
             lock (_syncRoot)
             {
                 _activeTrayChecks.Remove(checkTask);
+                disposeCancellation =
+                    _disposed && _activeTrayChecks.Count == 0;
+            }
+
+            if (disposeCancellation)
+            {
+                DisposeLifetimeCancellation();
             }
         }
     }

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 using Xunit;
@@ -6,6 +7,20 @@ namespace UpdateChecker.Tests.Services;
 
 public sealed class UpdateSchedulerTests
 {
+    [Fact]
+    public void Dispose_DoesNotRemainRootedBySettingsStoreEvent()
+    {
+        var settingsStore = new TestSettingsStore(new UserSettings());
+        WeakReference schedulerReference = CreateDisposedScheduler(
+            settingsStore
+        );
+
+        ForceFullCollection();
+
+        Assert.False(schedulerReference.IsAlive);
+        Assert.Equal(0, settingsStore.SubscriberCount);
+    }
+
     [Fact]
     public async Task StopAsync_AwaitsSchedulesReplacedBySettingsChanges()
     {
@@ -70,6 +85,7 @@ public sealed class UpdateSchedulerTests
         await scheduler.StopAsync().WaitAsync(TimeSpan.FromSeconds(1));
 
         Assert.Equal(0, Volatile.Read(ref activeChecks));
+        Assert.Equal(0, settingsStore.SubscriberCount);
     }
 
     private static TaskCompletionSource NewSignal()
@@ -79,8 +95,30 @@ public sealed class UpdateSchedulerTests
         );
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference CreateDisposedScheduler(
+        TestSettingsStore settingsStore)
+    {
+        var scheduler = new UpdateScheduler(
+            settingsStore,
+            _ => Task.FromResult(ScheduledRunOutcome.Attempted)
+        );
+        scheduler.Start();
+        scheduler.Dispose();
+        return new WeakReference(scheduler);
+    }
+
+    private static void ForceFullCollection()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+    }
+
     private sealed class TestSettingsStore : IUserSettingsStore
     {
+        private Action<UserSettings>? _settingsChanged;
+
         public TestSettingsStore(UserSettings settings)
         {
             Current = settings;
@@ -88,12 +126,19 @@ public sealed class UpdateSchedulerTests
 
         public UserSettings Current { get; private set; }
 
-        public event Action<UserSettings>? SettingsChanged;
+        public int SubscriberCount =>
+            _settingsChanged?.GetInvocationList().Length ?? 0;
+
+        public event Action<UserSettings>? SettingsChanged
+        {
+            add => _settingsChanged += value;
+            remove => _settingsChanged -= value;
+        }
 
         public void Change(UserSettings settings)
         {
             Current = settings;
-            SettingsChanged?.Invoke(settings);
+            _settingsChanged?.Invoke(settings);
         }
 
         public void SetTheme(AppTheme theme) =>

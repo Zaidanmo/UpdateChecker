@@ -34,3 +34,10 @@ internal sealed class WingetOutputParseException : Exception
         : base("WinGet returned output in an unsupported format.")
     { }
 }
+
+internal sealed class WingetOutputLimitExceededException : Exception
+{
+    public WingetOutputLimitExceededException()
+        : base("WinGet returned more output than the app can safely process.")
+    { }
+}
