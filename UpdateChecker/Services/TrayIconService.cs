@@ -5,6 +5,7 @@ using UpdateChecker.Models;
 using DrawingColor = System.Drawing.Color;
 using DrawingFont = System.Drawing.Font;
 using DrawingIcon = System.Drawing.Icon;
+using DrawingRectangle = System.Drawing.Rectangle;
 using Forms = System.Windows.Forms;
 
 namespace UpdateChecker.Services;
@@ -25,23 +26,17 @@ internal sealed class TrayIconService : IUpdateNotificationSink, IDisposable
         Func<Task> exitApplication)
     {
         _icon = LoadApplicationIcon();
-        _menuFont = new DrawingFont(
-            Forms.Control.DefaultFont.FontFamily,
-            10F,
-            System.Drawing.FontStyle.Regular
-        );
-        _menuBoldFont = new DrawingFont(
-            Forms.Control.DefaultFont.FontFamily,
-            10F,
-            System.Drawing.FontStyle.Bold
+        _menuFont = CreateMenuFont("Segoe UI", emphasized: false);
+        _menuBoldFont = CreateMenuFont(
+            "Segoe UI Semibold",
+            emphasized: true
         );
 
         _contextMenu = new Forms.ContextMenuStrip
         {
             AutoSize = true,
             DropShadowEnabled = true,
-            MinimumSize = new System.Drawing.Size(238, 0),
-            Padding = new Forms.Padding(6),
+            Padding = new Forms.Padding(7),
             ShowCheckMargin = false,
             ShowImageMargin = false
         };
@@ -63,7 +58,7 @@ internal sealed class TrayIconService : IUpdateNotificationSink, IDisposable
 
         var separator = new Forms.ToolStripSeparator
         {
-            Margin = new Forms.Padding(8, 5, 8, 5)
+            Margin = new Forms.Padding(8, 4, 8, 4)
         };
         _contextMenu.Items.Add(separator);
 
@@ -201,12 +196,7 @@ internal sealed class TrayIconService : IUpdateNotificationSink, IDisposable
 
         _contextMenu.BackColor = palette.Background;
         _contextMenu.ForeColor = palette.Text;
-        _contextMenu.Renderer = new Forms.ToolStripProfessionalRenderer(
-            new ModernTrayColorTable(palette)
-        )
-        {
-            RoundedEdges = true
-        };
+        _contextMenu.Renderer = new ModernTrayRenderer(palette);
 
         foreach (Forms.ToolStripItem item in _contextMenu.Items)
         {
@@ -222,7 +212,35 @@ internal sealed class TrayIconService : IUpdateNotificationSink, IDisposable
         item.AutoSize = true;
         item.Font = font;
         item.Margin = Forms.Padding.Empty;
-        item.Padding = new Forms.Padding(12, 8, 12, 8);
+        item.Padding = new Forms.Padding(14, 9, 14, 9);
+    }
+
+    private static DrawingFont CreateMenuFont(
+        string preferredFamily,
+        bool emphasized)
+    {
+        try
+        {
+            using var fontFamily = new System.Drawing.FontFamily(
+                preferredFamily
+            );
+            return new DrawingFont(
+                fontFamily,
+                9.5F,
+                System.Drawing.FontStyle.Regular,
+                System.Drawing.GraphicsUnit.Point
+            );
+        }
+        catch (ArgumentException)
+        {
+            return new DrawingFont(
+                Forms.Control.DefaultFont.FontFamily,
+                9.5F,
+                emphasized
+                    ? System.Drawing.FontStyle.Bold
+                    : System.Drawing.FontStyle.Regular
+            );
+        }
     }
 
     private static void ApplyNativeMenuAppearance(
@@ -328,50 +346,130 @@ internal sealed class TrayIconService : IUpdateNotificationSink, IDisposable
         }
     }
 
-    private sealed class ModernTrayColorTable :
-        Forms.ProfessionalColorTable
+    private sealed class ModernTrayRenderer : Forms.ToolStripRenderer
     {
         private readonly TrayMenuPalette _palette;
 
-        public ModernTrayColorTable(TrayMenuPalette palette)
+        public ModernTrayRenderer(TrayMenuPalette palette)
         {
             _palette = palette;
-            UseSystemColors = false;
         }
 
-        public override DrawingColor ToolStripDropDownBackground =>
-            _palette.Background;
+        protected override void OnRenderToolStripBackground(
+            Forms.ToolStripRenderEventArgs e)
+        {
+            e.Graphics.Clear(_palette.Background);
+        }
 
-        public override DrawingColor MenuBorder => _palette.Border;
+        protected override void OnRenderToolStripBorder(
+            Forms.ToolStripRenderEventArgs e)
+        {
+            using var pen = new System.Drawing.Pen(_palette.Border);
+            DrawingRectangle bounds = e.AffectedBounds;
+            bounds.Width -= 1;
+            bounds.Height -= 1;
+            e.Graphics.DrawRectangle(pen, bounds);
+        }
 
-        public override DrawingColor MenuItemBorder => _palette.Hover;
+        protected override void OnRenderMenuItemBackground(
+            Forms.ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.Selected)
+            {
+                return;
+            }
 
-        public override DrawingColor MenuItemSelected => _palette.Hover;
+            DrawingRectangle bounds = new(
+                3,
+                2,
+                e.Item.Width - 6,
+                e.Item.Height - 4
+            );
+            DrawingColor background = e.Item.Pressed
+                ? _palette.Pressed
+                : _palette.Hover;
 
-        public override DrawingColor MenuItemSelectedGradientBegin =>
-            _palette.Hover;
+            using System.Drawing.Drawing2D.GraphicsPath path =
+                CreateRoundedRectangle(bounds, radius: 7);
+            using var brush = new System.Drawing.SolidBrush(background);
+            System.Drawing.Drawing2D.SmoothingMode previousMode =
+                e.Graphics.SmoothingMode;
+            e.Graphics.SmoothingMode =
+                System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            e.Graphics.FillPath(brush, path);
+            e.Graphics.SmoothingMode = previousMode;
+        }
 
-        public override DrawingColor MenuItemSelectedGradientEnd =>
-            _palette.Hover;
+        protected override void OnRenderItemText(
+            Forms.ToolStripItemTextRenderEventArgs e)
+        {
+            DrawingRectangle bounds = new(
+                14,
+                0,
+                Math.Max(0, e.Item.Width - 28),
+                e.Item.Height
+            );
+            DrawingColor textColor = e.Item.Enabled
+                ? _palette.Text
+                : DrawingColor.FromArgb(135, _palette.Text);
 
-        public override DrawingColor MenuItemPressedGradientBegin =>
-            _palette.Pressed;
+            Forms.TextRenderer.DrawText(
+                e.Graphics,
+                e.Text,
+                e.TextFont,
+                bounds,
+                textColor,
+                Forms.TextFormatFlags.Left |
+                Forms.TextFormatFlags.VerticalCenter |
+                Forms.TextFormatFlags.SingleLine |
+                Forms.TextFormatFlags.EndEllipsis |
+                Forms.TextFormatFlags.NoPadding |
+                Forms.TextFormatFlags.NoPrefix
+            );
+        }
 
-        public override DrawingColor MenuItemPressedGradientEnd =>
-            _palette.Pressed;
+        protected override void OnRenderSeparator(
+            Forms.ToolStripSeparatorRenderEventArgs e)
+        {
+            int y = e.Item.Height / 2;
+            using var pen = new System.Drawing.Pen(_palette.Separator);
+            e.Graphics.DrawLine(pen, 8, y, e.Item.Width - 8, y);
+        }
 
-        public override DrawingColor SeparatorDark => _palette.Separator;
+        private static System.Drawing.Drawing2D.GraphicsPath
+            CreateRoundedRectangle(DrawingRectangle bounds, int radius)
+        {
+            int diameter = radius * 2;
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
 
-        public override DrawingColor SeparatorLight => _palette.Separator;
-
-        public override DrawingColor ImageMarginGradientBegin =>
-            _palette.Background;
-
-        public override DrawingColor ImageMarginGradientMiddle =>
-            _palette.Background;
-
-        public override DrawingColor ImageMarginGradientEnd =>
-            _palette.Background;
+            path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+            path.AddArc(
+                bounds.Right - diameter,
+                bounds.Top,
+                diameter,
+                diameter,
+                270,
+                90
+            );
+            path.AddArc(
+                bounds.Right - diameter,
+                bounds.Bottom - diameter,
+                diameter,
+                diameter,
+                0,
+                90
+            );
+            path.AddArc(
+                bounds.Left,
+                bounds.Bottom - diameter,
+                diameter,
+                diameter,
+                90,
+                90
+            );
+            path.CloseFigure();
+            return path;
+        }
     }
 
     [DllImport("dwmapi.dll", ExactSpelling = true)]

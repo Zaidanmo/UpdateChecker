@@ -24,6 +24,44 @@
         </Grid>
     </DataTemplate>
 
+    <Style TargetType="ToolTip">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource FooterBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="11,8"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="MaxWidth" Value="360"/>
+        <Setter Property="Placement" Value="Mouse"/>
+        <Setter Property="HasDropShadow" Value="True"/>
+        <Setter Property="ToolTipService.InitialShowDelay" Value="350"/>
+        <Setter Property="ToolTipService.BetweenShowDelay" Value="80"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="14"
+                                              ShadowDepth="3"
+                                              Direction="270"
+                                              Color="{DynamicResource CardShadowColor}"
+                                              Opacity="0.2"/>
+                        </Border.Effect>
+                        <TextBlock Text="{TemplateBinding Content}"
+                                   MaxWidth="336"
+                                   TextWrapping="Wrap"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
         <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
