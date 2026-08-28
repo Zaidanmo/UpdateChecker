@@ -21,14 +21,10 @@ added or expanded in the future.
   version-change status.
 - Distinguishes minor updates from major version changes.
 - Copies an exact WinGet update command for an individual application.
-- Supports light and dark themes.
 - Can optionally continue running in the Windows notification area.
 - Supports optional scheduled checks every hour, 6 hours, 12 hours, day, or
   week.
 - Shows a notification when scheduled checks find updates.
-- Remembers the latest successful check and the selected settings.
-- Includes clear warnings for missing WinGet, access problems, timeouts, and
-  unsupported output.
 
 Automatic checks and background operation are disabled by default. They must be
 enabled by the user from Settings.
@@ -181,9 +177,9 @@ significant in designing, iterating, and polishing the user interface, including
 layout, styling, theme behavior, and UX details. AI assistance was also used to
 a smaller extent for code review, refactoring ideas, tests, and documentation.
 
-The application remains a human-directed project: feature choices, final design
-decisions, testing, and responsibility for the resulting code belong to the
-project author.
+This open-source project is provided **as is**, without warranty. The project
+author is not responsible or liable for system problems, failed updates, data
+loss, or other damages that may arise from using or modifying the application.
 
 ## Disclaimer
 
