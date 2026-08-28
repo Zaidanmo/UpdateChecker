@@ -110,19 +110,42 @@ internal sealed class UpdateScheduler : IDisposable
         UserSettings settings,
         DateTimeOffset utcNow)
     {
-        if (settings.LastAutomaticCheckUtc is not DateTimeOffset lastCheck)
+        DateTimeOffset? nextCheck = CalculateNextCheckUtc(settings, utcNow);
+
+        if (nextCheck is null)
         {
-            return InitialCheckDelay;
+            return Timeout.InfiniteTimeSpan;
         }
 
         TimeSpan remaining =
-            lastCheck.ToUniversalTime() +
-            settings.AutomaticCheckInterval.ToTimeSpan() -
-            utcNow.ToUniversalTime();
+            nextCheck.Value.ToUniversalTime() - utcNow.ToUniversalTime();
 
         return remaining > TimeSpan.Zero
             ? remaining
             : TimeSpan.Zero;
+    }
+
+    internal static DateTimeOffset? CalculateNextCheckUtc(
+        UserSettings settings,
+        DateTimeOffset utcNow)
+    {
+        if (!settings.AutomaticChecksEnabled)
+        {
+            return null;
+        }
+
+        if (settings.LastAutomaticCheckUtc is not DateTimeOffset lastCheck)
+        {
+            return utcNow.ToUniversalTime() + InitialCheckDelay;
+        }
+
+        DateTimeOffset nextCheck =
+            lastCheck.ToUniversalTime() +
+            settings.AutomaticCheckInterval.ToTimeSpan();
+
+        return nextCheck > utcNow.ToUniversalTime()
+            ? nextCheck
+            : utcNow.ToUniversalTime();
     }
 
     private void SettingsStore_SettingsChanged(UserSettings settings)

@@ -58,6 +58,10 @@ public sealed class UpdateNotificationPolicyTests
 
         public int WarningCount { get; private set; }
 
+        public void SetStatus(TrayIconStatus status, int updateCount = 0)
+        {
+        }
+
         public void ShowUpdatesFound(int updateCount, int majorUpdateCount)
         {
             UpdatesFoundCount++;

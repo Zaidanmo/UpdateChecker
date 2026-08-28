@@ -119,6 +119,71 @@ public sealed class UserSettingsManagerTests
     }
 
     [Fact]
+    public void Initialize_FirstRunUsesSystemThemeAndSafeDefaults()
+    {
+        string directory = CreateTemporaryDirectory();
+        string settingsPath = Path.Combine(directory, "settings.json");
+        string legacyThemePath = Path.Combine(directory, "theme.txt");
+
+        try
+        {
+            var manager = new UserSettingsManager(
+                settingsPath,
+                legacyThemePath,
+                systemThemeProvider: () => AppTheme.Dark
+            );
+
+            manager.Initialize();
+
+            Assert.Equal(AppTheme.Dark, manager.Current.Theme);
+            Assert.False(manager.Current.RunInBackground);
+            Assert.False(manager.Current.AutomaticChecksEnabled);
+            Assert.True(File.Exists(settingsPath));
+            Assert.Contains(
+                "\"Theme\": \"Dark\"",
+                File.ReadAllText(settingsPath),
+                StringComparison.Ordinal
+            );
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Initialize_ExistingThemeIsNotReplacedBySystemTheme()
+    {
+        string directory = CreateTemporaryDirectory();
+        string settingsPath = Path.Combine(directory, "settings.json");
+        string legacyThemePath = Path.Combine(directory, "theme.txt");
+
+        try
+        {
+            File.WriteAllText(
+                settingsPath,
+                UserSettingsManager.Serialize(new UserSettings
+                {
+                    Theme = AppTheme.Light
+                })
+            );
+            var manager = new UserSettingsManager(
+                settingsPath,
+                legacyThemePath,
+                systemThemeProvider: () => AppTheme.Dark
+            );
+
+            manager.Initialize();
+
+            Assert.Equal(AppTheme.Light, manager.Current.Theme);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RecordAutomaticCheckResult_PersistsMetadataTogether()
     {
         string directory = CreateTemporaryDirectory();

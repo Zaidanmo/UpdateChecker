@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
@@ -31,6 +32,7 @@ public partial class SettingsView : System.Windows.Controls.UserControl
             ThemeManager.CurrentTheme == AppTheme.Dark;
 
         UserSettings settings = App.CurrentApp.UserSettings.Current;
+        RefreshScheduleSummary(settings);
         AutomaticChecksCheckBox.IsChecked =
             settings.AutomaticChecksEnabled;
         RunInBackgroundCheckBox.IsChecked = settings.RunInBackground;
@@ -50,6 +52,22 @@ public partial class SettingsView : System.Windows.Controls.UserControl
             settings.AutomaticCheckInterval == AutomaticCheckInterval.Weekly;
 
         _isSynchronizingChoices = false;
+    }
+
+    public void FocusFirstControl()
+    {
+        AutomaticChecksCheckBox.Focus();
+    }
+
+    public void RefreshTimeSummaries()
+    {
+        RefreshScheduleSummary(App.CurrentApp.UserSettings.Current);
+    }
+
+    public void ClearTransientFeedback()
+    {
+        ApplicationPathFeedbackTextBlock.Text = string.Empty;
+        ApplicationPathFeedbackTextBlock.Visibility = Visibility.Collapsed;
     }
 
     private void LightThemeRadioButton_Checked(
@@ -139,6 +157,10 @@ public partial class SettingsView : System.Windows.Controls.UserControl
                 FileName = ApplicationFolderPath,
                 UseShellExecute = true
             });
+            ShowApplicationPathFeedback(
+                "Opened the application folder.",
+                isError: false
+            );
         }
         catch (Exception exception)
             when (exception is Win32Exception or
@@ -146,14 +168,79 @@ public partial class SettingsView : System.Windows.Controls.UserControl
                   IOException or
                   UnauthorizedAccessException)
         {
-            System.Windows.MessageBox.Show(
-                Window.GetWindow(this),
+            ShowApplicationPathFeedback(
                 "Windows could not open the application folder. " +
-                "You can copy the path from the field and open it manually.",
-                "Unable to open folder",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning
+                "Copy the path and open it manually.",
+                isError: true
             );
         }
+    }
+
+    private void CopyApplicationPathButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(ApplicationFolderPath);
+            ShowApplicationPathFeedback("Application path copied.", false);
+        }
+        catch (ExternalException)
+        {
+            ShowApplicationPathFeedback(
+                "Windows could not access the clipboard. Try again.",
+                isError: true
+            );
+        }
+    }
+
+    private void RefreshScheduleSummary(UserSettings settings)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        if (settings.LastSuccessfulCheckUtc is DateTimeOffset lastCheck)
+        {
+            LastCheckTextBlock.Text = DateTimeDisplayFormatter.FormatRelative(
+                lastCheck,
+                now
+            );
+            LastCheckTextBlock.ToolTip =
+                DateTimeDisplayFormatter.FormatExact(lastCheck);
+        }
+        else
+        {
+            LastCheckTextBlock.Text = "Never";
+            LastCheckTextBlock.ToolTip = null;
+        }
+
+        DateTimeOffset? nextCheck = UpdateScheduler.CalculateNextCheckUtc(
+            settings,
+            now
+        );
+
+        if (nextCheck is DateTimeOffset scheduledCheck)
+        {
+            NextCheckTextBlock.Text =
+                DateTimeDisplayFormatter.FormatRelative(scheduledCheck, now);
+            NextCheckTextBlock.ToolTip =
+                DateTimeDisplayFormatter.FormatExact(scheduledCheck);
+        }
+        else
+        {
+            NextCheckTextBlock.Text = "Automatic checks disabled";
+            NextCheckTextBlock.ToolTip = null;
+        }
+    }
+
+    private void ShowApplicationPathFeedback(
+        string message,
+        bool isError)
+    {
+        ApplicationPathFeedbackTextBlock.Text = message;
+        ApplicationPathFeedbackTextBlock.SetResourceReference(
+            System.Windows.Controls.TextBlock.ForegroundProperty,
+            isError ? "StatusErrorBrush" : "StatusSuccessBrush"
+        );
+        ApplicationPathFeedbackTextBlock.Visibility = Visibility.Visible;
     }
 }

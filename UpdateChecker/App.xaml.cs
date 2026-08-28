@@ -23,6 +23,13 @@ public partial class App : System.Windows.Application
 
     internal static App CurrentApp => (App)Current;
 
+    internal void SetTrayStatus(
+        TrayIconStatus status,
+        int updateCount = 0)
+    {
+        _trayIconService?.SetStatus(status, updateCount);
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         UserSettings.Initialize();

@@ -19,11 +19,13 @@ internal sealed class UserSettingsManager : IUserSettingsStore
     private readonly object _syncRoot = new();
     private readonly string _settingsFilePath;
     private readonly string _legacyThemeFilePath;
+    private readonly Func<AppTheme> _systemThemeProvider;
     private UserSettings _current = new();
 
     public UserSettingsManager(
         string? settingsFilePath = null,
-        string? legacyThemeFilePath = null)
+        string? legacyThemeFilePath = null,
+        Func<AppTheme>? systemThemeProvider = null)
     {
         string settingsDirectory = Path.Combine(
             Environment.GetFolderPath(
@@ -40,6 +42,8 @@ internal sealed class UserSettingsManager : IUserSettingsStore
             settingsDirectory,
             LegacyThemeFileName
         );
+        _systemThemeProvider =
+            systemThemeProvider ?? SystemThemeService.GetPreferredAppTheme;
     }
 
     public UserSettings Current
@@ -62,7 +66,8 @@ internal sealed class UserSettingsManager : IUserSettingsStore
             LoadResult loaded = Load();
             _current = loaded.Settings;
 
-            if (loaded.MigratedLegacyTheme && Save(_current))
+            if (loaded.ShouldSave && Save(_current) &&
+                loaded.DeleteLegacyTheme)
             {
                 DeleteLegacyThemePreference();
             }
@@ -253,28 +258,40 @@ internal sealed class UserSettingsManager : IUserSettingsStore
                 ? File.ReadAllText(_settingsFilePath)
                 : null;
             UserSettings settings = Deserialize(json);
+            bool hasThemePreference = ContainsThemeProperty(json);
 
-            if (!ContainsThemeProperty(json) &&
+            if (!hasThemePreference &&
                 TryReadLegacyTheme(out AppTheme legacyTheme))
             {
                 return new LoadResult(
                     settings with { Theme = legacyTheme },
-                    MigratedLegacyTheme: true
+                    ShouldSave: true,
+                    DeleteLegacyTheme: true
+                );
+            }
+
+            if (!hasThemePreference)
+            {
+                return new LoadResult(
+                    settings with { Theme = _systemThemeProvider() },
+                    ShouldSave: true,
+                    DeleteLegacyTheme: false
                 );
             }
 
             return new LoadResult(
                 settings,
-                MigratedLegacyTheme: false
+                ShouldSave: false,
+                DeleteLegacyTheme: false
             );
         }
         catch (IOException)
         {
-            return new LoadResult(new UserSettings(), false);
+            return CreateFallbackLoadResult();
         }
         catch (UnauthorizedAccessException)
         {
-            return new LoadResult(new UserSettings(), false);
+            return CreateFallbackLoadResult();
         }
     }
 
@@ -339,6 +356,15 @@ internal sealed class UserSettingsManager : IUserSettingsStore
         TryDeleteFile(_legacyThemeFilePath);
     }
 
+    private LoadResult CreateFallbackLoadResult()
+    {
+        return new LoadResult(
+            new UserSettings { Theme = _systemThemeProvider() },
+            ShouldSave: false,
+            DeleteLegacyTheme: false
+        );
+    }
+
     private static bool ContainsThemeProperty(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -378,5 +404,6 @@ internal sealed class UserSettingsManager : IUserSettingsStore
 
     private readonly record struct LoadResult(
         UserSettings Settings,
-        bool MigratedLegacyTheme);
+        bool ShouldSave,
+        bool DeleteLegacyTheme);
 }

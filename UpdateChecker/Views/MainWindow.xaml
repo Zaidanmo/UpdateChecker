@@ -10,7 +10,8 @@
         MinHeight="540"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        PreviewKeyDown="MainWindow_PreviewKeyDown">
 
 
     <Grid>
@@ -48,7 +49,7 @@
                             Margin="0,0,12,0"
                             Style="{StaticResource CircularIconButtonStyle}"
                             Click="SettingsNavigationButton_Click"
-                            ToolTip="Open settings"
+                            ToolTip="Open settings (Ctrl+,)"
                             AutomationProperties.Name="Open settings"
                             VerticalAlignment="Center">
                         <Grid Width="19"
@@ -77,6 +78,8 @@
                             Content="Check for updates"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Click="CheckUpdatesButton_Click"
+                            ToolTip="Check for updates (Ctrl+R or F5)"
+                            AutomationProperties.Name="Check for updates"
                             VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
@@ -99,6 +102,7 @@
 
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -170,7 +174,7 @@
                                     BorderThickness="1"
                                     CornerRadius="11"
                                     Padding="10,6"
-                                    ToolTip="Minor and patch-level version changes">
+                                    ToolTip="Minor update: the first numeric version component is unchanged. This describes version distance, not security severity.">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="6"
                                              Height="6"
@@ -190,7 +194,7 @@
                                     BorderThickness="1"
                                     CornerRadius="11"
                                     Padding="10,6"
-                                    ToolTip="The first numeric version component has changed">
+                                    ToolTip="Major version change: the first numeric version component changed. Review release notes for possible breaking changes; this is not a security-risk rating.">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="6"
                                              Height="6"
@@ -208,7 +212,65 @@
 
                     <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderBrush}"/>
 
-                    <Grid Grid.Row="2">
+                    <Border x:Name="InlineErrorPanel"
+                            Grid.Row="2"
+                            Margin="20,12,20,0"
+                            Padding="14,12"
+                            Visibility="Collapsed"
+                            Background="{DynamicResource MajorVersionBackgroundBrush}"
+                            BorderBrush="{DynamicResource MajorVersionBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            AutomationProperties.LiveSetting="Assertive">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Width="24"
+                                    Height="24"
+                                    Margin="0,0,12,0"
+                                    Background="{DynamicResource MajorVersionIndicatorBrush}"
+                                    CornerRadius="12"
+                                    VerticalAlignment="Top">
+                                <TextBlock Text="!"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="13"
+                                           FontWeight="Bold"
+                                           Foreground="White"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="InlineErrorTitleTextBlock"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource MajorVersionTextBrush}"/>
+                                <TextBlock x:Name="InlineErrorMessageTextBlock"
+                                           Margin="0,3,12,0"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="2"
+                                    Content="Try again"
+                                    Padding="13,7"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="RetryUpdateCheckButton_Click"/>
+                            <Button Grid.Column="4"
+                                    Content="Dismiss"
+                                    Padding="13,7"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="DismissInlineErrorButton_Click"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="3">
                         <DataGrid x:Name="UpdatesDataGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -224,7 +286,7 @@
                                   Background="{DynamicResource SurfaceBrush}"
                                   SelectionMode="Single"
                                   SelectionUnit="FullRow"
-                                  HorizontalScrollBarVisibility="Disabled"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   ScrollViewer.CanContentScroll="True"
                                   VirtualizingPanel.IsVirtualizing="True"
@@ -236,7 +298,8 @@
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="APPLICATION"
                                                         SortMemberPath="Name"
-                                                        Width="2.2*">
+                                                        MinWidth="230"
+                                                        Width="*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="22,0"
@@ -258,11 +321,11 @@
 
                                 <DataGridTemplateColumn Header="CURRENT VERSION"
                                                         SortMemberPath="InstalledVersion"
-                                                        Width="1*">
+                                                        Width="170">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding InstalledVersion}"
-                                                       Margin="22,0"
+                                                       Margin="16,0"
                                                        VerticalAlignment="Center"
                                                        FontSize="12.5"
                                                        Foreground="{DynamicResource SecondaryTextBrush}"
@@ -273,7 +336,7 @@
 
                                 <DataGridTemplateColumn Header="LATEST VERSION"
                                                         SortMemberPath="AvailableVersion"
-                                                        Width="1*">
+                                                        Width="170">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="{DynamicResource SoftBlueBrush}"
@@ -281,7 +344,7 @@
                                                     BorderThickness="1"
                                                     CornerRadius="7"
                                                     Padding="10,5"
-                                                    Margin="22,0"
+                                                    Margin="16,0"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding AvailableVersion}"
@@ -296,10 +359,10 @@
 
                                 <DataGridTemplateColumn Header="STATUS"
                                                         SortMemberPath="HasMajorVersionChange"
-                                                        Width="1.25*">
+                                                        Width="188">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                             <Border Margin="22,0"
+                                             <Border Margin="14,0"
                                                     Padding="9,5"
                                                     BorderThickness="1"
                                                     CornerRadius="8"
@@ -319,6 +382,31 @@
                                                                Style="{StaticResource StatusBadgeTextStyle}"/>
                                                 </StackPanel>
                                             </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="UPDATE COMMAND"
+                                                        Width="142">
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader"
+                                               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="Padding" Value="12,0"/>
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Width="30"
+                                                    Height="30"
+                                                    Content="Copy"
+                                                    ContentTemplate="{StaticResource CopyIconTemplate}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Style="{StaticResource CircularIconButtonStyle}"
+                                                    Tag="{Binding}"
+                                                    Click="CopyUpgradeCommandButton_Click"
+                                                    ToolTip="Copy the exact WinGet upgrade command"
+                                                    AutomationProperties.Name="Copy WinGet upgrade command"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -370,7 +458,7 @@
                         </Border>
                     </Grid>
 
-                    <Border Grid.Row="3"
+                    <Border Grid.Row="4"
                             Padding="20,12"
                             Background="{DynamicResource FooterBackgroundBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
@@ -387,7 +475,8 @@
                                        Text="Last checked: Never"
                                        FontSize="12.5"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.LiveSetting="Polite"/>
                         </StackPanel>
                     </Border>
                 </Grid>

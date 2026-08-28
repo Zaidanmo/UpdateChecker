@@ -13,9 +13,9 @@ internal sealed record UserSettings
 {
     public AppTheme Theme { get; init; } = AppTheme.Light;
 
-    public bool RunInBackground { get; init; }
+    public bool RunInBackground { get; init; } = false;
 
-    public bool AutomaticChecksEnabled { get; init; }
+    public bool AutomaticChecksEnabled { get; init; } = false;
 
     public AutomaticCheckInterval AutomaticCheckInterval { get; init; } =
         AutomaticCheckInterval.Daily;

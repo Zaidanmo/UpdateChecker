@@ -65,6 +65,23 @@ public sealed class BackgroundUpdateServiceTests
     }
 
     [Fact]
+    public void CalculateNextCheckUtc_DisabledScheduleHasNoNextCheck()
+    {
+        var settings = new UserSettings
+        {
+            RunInBackground = true,
+            AutomaticChecksEnabled = false
+        };
+
+        DateTimeOffset? nextCheck = UpdateScheduler.CalculateNextCheckUtc(
+            settings,
+            Now
+        );
+
+        Assert.Null(nextCheck);
+    }
+
+    [Fact]
     public void CreateUpdateFingerprint_IsIndependentOfResultOrder()
     {
         AppUpdateInfo first = new("First", "Vendor.First", "1.0", "2.0");
@@ -115,12 +132,13 @@ public sealed class BackgroundUpdateServiceTests
                 Path.Combine(directory, "theme.txt")
             );
             settings.Initialize();
+            var notificationSink = new SilentNotificationSink();
             var service = new BackgroundUpdateService(
                 new UpdateCheckService(
                     new FixedUpdateSource([expectedUpdate])
                 ),
                 settings,
-                new SilentNotificationSink()
+                notificationSink
             );
             var lifecycle = new List<string>();
             TrayUpdateCheckResult? completion = null;
@@ -142,6 +160,13 @@ public sealed class BackgroundUpdateServiceTests
             );
             Assert.Equal([expectedUpdate], completion.Updates);
             Assert.NotNull(settings.Current.LastSuccessfulCheckUtc);
+            Assert.Equal(
+                [
+                    TrayIconStatus.Checking,
+                    TrayIconStatus.UpdatesAvailable
+                ],
+                notificationSink.Statuses
+            );
         }
         finally
         {
@@ -167,6 +192,13 @@ public sealed class BackgroundUpdateServiceTests
 
     private sealed class SilentNotificationSink : IUpdateNotificationSink
     {
+        public List<TrayIconStatus> Statuses { get; } = [];
+
+        public void SetStatus(TrayIconStatus status, int updateCount = 0)
+        {
+            Statuses.Add(status);
+        }
+
         public void ShowUpdatesFound(int updateCount, int majorUpdateCount)
         {
         }

@@ -52,6 +52,45 @@
                                            FontSize="12.5"
                                            Foreground="{DynamicResource MutedTextBrush}"/>
 
+                                <Border Margin="0,16,0,0"
+                                        Padding="14,12"
+                                        Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="LAST CHECK"
+                                                       FontSize="10.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TertiaryTextBrush}"/>
+                                            <TextBlock x:Name="LastCheckTextBlock"
+                                                       Margin="0,4,0,0"
+                                                       FontSize="12.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="NEXT AUTOMATIC CHECK"
+                                                       FontSize="10.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TertiaryTextBrush}"/>
+                                            <TextBlock x:Name="NextCheckTextBlock"
+                                                       Margin="0,4,0,0"
+                                                       FontSize="12.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
                                 <CheckBox x:Name="AutomaticChecksCheckBox"
                                           Margin="0,20,0,0"
                                           Style="{StaticResource SettingsToggleSwitchStyle}"
@@ -176,17 +215,36 @@
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="9"
-                                            Padding="12,9">
-                                        <TextBox x:Name="ApplicationPathTextBox"
-                                                 IsReadOnly="True"
-                                                 BorderThickness="0"
-                                                 Padding="0"
-                                                 Background="Transparent"
-                                                 Foreground="{DynamicResource SecondaryTextBrush}"
-                                                 FontSize="12.5"
-                                                 VerticalContentAlignment="Center"
-                                                 HorizontalScrollBarVisibility="Hidden"
-                                                 AutomationProperties.Name="Application folder path"/>
+                                            Padding="12,5,6,5">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBox x:Name="ApplicationPathTextBox"
+                                                     Grid.Column="0"
+                                                     IsReadOnly="True"
+                                                     BorderThickness="0"
+                                                     Padding="0"
+                                                     Background="Transparent"
+                                                     Foreground="{DynamicResource SecondaryTextBrush}"
+                                                     FontSize="12.5"
+                                                     VerticalContentAlignment="Center"
+                                                     HorizontalScrollBarVisibility="Hidden"
+                                                     AutomationProperties.Name="Application folder path"/>
+
+                                            <Button Grid.Column="2"
+                                                    Width="30"
+                                                    Height="30"
+                                                    Content="Copy"
+                                                    ContentTemplate="{StaticResource CopyIconTemplate}"
+                                                    Style="{StaticResource CircularIconButtonStyle}"
+                                                    Click="CopyApplicationPathButton_Click"
+                                                    ToolTip="Copy application path"
+                                                    AutomationProperties.Name="Copy application folder path"/>
+                                        </Grid>
                                     </Border>
 
                                     <Button Grid.Column="2"
@@ -196,6 +254,13 @@
                                             Click="OpenApplicationFolderButton_Click"
                                             AutomationProperties.Name="Open application folder in File Explorer"/>
                                 </Grid>
+
+                                <TextBlock x:Name="ApplicationPathFeedbackTextBlock"
+                                           Margin="0,9,0,0"
+                                           Visibility="Collapsed"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           AutomationProperties.LiveSetting="Polite"/>
                             </StackPanel>
                         </Border>
 

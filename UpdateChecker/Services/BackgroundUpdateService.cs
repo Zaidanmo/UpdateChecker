@@ -7,6 +7,7 @@ internal sealed class BackgroundUpdateService : IDisposable
     private readonly object _syncRoot = new();
     private readonly UpdateCheckService _updateCheckService;
     private readonly IUserSettingsStore _settingsStore;
+    private readonly IUpdateNotificationSink _notificationSink;
     private readonly UpdateNotificationPolicy _notificationPolicy;
     private readonly UpdateScheduler _scheduler;
     private readonly Func<DateTimeOffset> _utcNow;
@@ -23,6 +24,7 @@ internal sealed class BackgroundUpdateService : IDisposable
     {
         _updateCheckService = updateCheckService;
         _settingsStore = settingsStore;
+        _notificationSink = notificationSink;
         _notificationPolicy = new UpdateNotificationPolicy(notificationSink);
         _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
         _scheduler = new UpdateScheduler(
@@ -53,6 +55,7 @@ internal sealed class BackgroundUpdateService : IDisposable
             }
 
             TrayCheckStarted?.Invoke();
+            _notificationSink.SetStatus(TrayIconStatus.Checking);
             Task checkTask = ExecuteCheckAsync(
                 alwaysNotify: true,
                 scheduled: false,
@@ -127,6 +130,11 @@ internal sealed class BackgroundUpdateService : IDisposable
     {
         try
         {
+            if (scheduled)
+            {
+                _notificationSink.SetStatus(TrayIconStatus.Checking);
+            }
+
             IReadOnlyList<AppUpdateInfo> updates =
                 await _updateCheckService.CheckAsync(cancellationToken)
                     .ConfigureAwait(false);
@@ -135,6 +143,12 @@ internal sealed class BackgroundUpdateService : IDisposable
                 updates,
                 alwaysNotify,
                 _settingsStore.Current.LastNotifiedUpdateFingerprint
+            );
+            _notificationSink.SetStatus(
+                updates.Count == 0
+                    ? TrayIconStatus.UpToDate
+                    : TrayIconStatus.UpdatesAvailable,
+                updates.Count
             );
 
             if (scheduled)
@@ -173,6 +187,7 @@ internal sealed class BackgroundUpdateService : IDisposable
         }
         catch (UpdateCheckTimedOutException)
         {
+            _notificationSink.SetStatus(TrayIconStatus.Failed);
             _notificationPolicy.NotifyFailure(
                 "Update check timed out",
                 "WinGet took too long to respond. Try again later.",
@@ -188,6 +203,7 @@ internal sealed class BackgroundUpdateService : IDisposable
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
         {
+            _notificationSink.SetStatus(TrayIconStatus.Ready);
             NotifyTrayCheckCompleted(
                 scheduled,
                 new TrayUpdateCheckResult(TrayUpdateCheckStatus.Cancelled)
@@ -196,6 +212,7 @@ internal sealed class BackgroundUpdateService : IDisposable
         }
         catch (Exception exception)
         {
+            _notificationSink.SetStatus(TrayIconStatus.Failed);
             UpdateCheckFailure failure =
                 UpdateCheckErrorMapper.FromException(exception);
             _notificationPolicy.NotifyFailure(

@@ -1,7 +1,9 @@
 ﻿using System.Windows;
 using System.Windows.Automation;
+using System.Windows.Input;
 using System.Windows.Shapes;
-using System.Globalization;
+using System.Windows.Threading;
+using System.Runtime.InteropServices;
 using UpdateChecker.Models;
 using UpdateChecker.Services;
 
@@ -22,9 +24,11 @@ public partial class MainWindow : Window
     }
 
     private readonly UpdateCheckService _updateCheckService;
+    private readonly DispatcherTimer _relativeTimeRefreshTimer;
     private CancellationTokenSource? _updateCheckCancellation;
     private bool _isTrayCheckActive;
     private bool _isSettingsOpen;
+    private UpdateCheckState _currentState;
 
     private IReadOnlyList<AppUpdateInfo> _updates =
         Array.Empty<AppUpdateInfo>();
@@ -34,6 +38,13 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _updateCheckService = App.CurrentApp.UpdateCheckService;
+        _relativeTimeRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMinutes(1)
+        };
+        _relativeTimeRefreshTimer.Tick +=
+            RelativeTimeRefreshTimer_Tick;
+        _relativeTimeRefreshTimer.Start();
 
         SourceInitialized += MainWindow_SourceInitialized;
         Activated += MainWindow_Activated;
@@ -83,9 +94,14 @@ public partial class MainWindow : Window
         );
     }
 
-    private async void CheckUpdatesButton_Click(
+    private void CheckUpdatesButton_Click(
         object sender,
         RoutedEventArgs e)
+    {
+        _ = RunManualCheckAsync();
+    }
+
+    private async Task RunManualCheckAsync()
     {
         if (_updateCheckCancellation is { } activeCancellation)
         {
@@ -97,10 +113,12 @@ public partial class MainWindow : Window
         using var cancellation = new CancellationTokenSource();
 
         _updateCheckCancellation = cancellation;
+        HideInlineError();
 
         _updates = Array.Empty<AppUpdateInfo>();
         UpdatesDataGrid.ItemsSource = _updates;
         ApplyState(UpdateCheckState.Checking);
+        App.CurrentApp.SetTrayStatus(TrayIconStatus.Checking);
 
         try
         {
@@ -112,14 +130,27 @@ public partial class MainWindow : Window
             App.CurrentApp.UserSettings.RecordSuccessfulCheck(
                 DateTimeOffset.UtcNow
             );
+            App.CurrentApp.SetTrayStatus(
+                updates.Count == 0
+                    ? TrayIconStatus.UpToDate
+                    : TrayIconStatus.UpdatesAvailable,
+                updates.Count
+            );
             ApplyUpdateResults(updates);
         }
         catch (UpdateCheckTimedOutException)
         {
+            App.CurrentApp.SetTrayStatus(TrayIconStatus.Failed);
             ApplyState(UpdateCheckState.TimedOut);
+            ShowInlineError(
+                "Update check timed out",
+                "WinGet took too long to respond. Check your connection " +
+                "and try again."
+            );
         }
         catch (OperationCanceledException)
         {
+            App.CurrentApp.SetTrayStatus(TrayIconStatus.Ready);
             ApplyState(UpdateCheckState.Cancelled);
         }
         catch (UpdateCheckInProgressException)
@@ -129,15 +160,15 @@ public partial class MainWindow : Window
                 "An automatic update check is already running."
             );
 
-            ShowUpdateCheckMessage(
-                "App Update Checker is already scanning your applications " +
-                "in the background. Please wait for it to finish.",
+            ShowInlineError(
                 "Update check already running",
-                MessageBoxImage.Information
+                "App Update Checker is already scanning your applications " +
+                "in the background. Please wait for it to finish."
             );
         }
         catch (Exception exception)
         {
+            App.CurrentApp.SetTrayStatus(TrayIconStatus.Failed);
             UpdateCheckFailure failure =
                 UpdateCheckErrorMapper.FromException(exception);
 
@@ -146,12 +177,9 @@ public partial class MainWindow : Window
                 failure.StatusMessage
             );
 
-            ShowUpdateCheckMessage(
-                failure.Message,
+            ShowInlineError(
                 failure.Title,
-                failure.IsUnexpected
-                    ? MessageBoxImage.Error
-                    : MessageBoxImage.Warning
+                failure.Message
             );
         }
         finally
@@ -165,6 +193,7 @@ public partial class MainWindow : Window
         string? statusMessage = null,
         int updateCount = 0)
     {
+        _currentState = state;
         bool isBusy = state is
             UpdateCheckState.Checking or
             UpdateCheckState.Cancelling;
@@ -196,7 +225,8 @@ public partial class MainWindow : Window
                 UpdateCheckState.Ready => (
                     FormatLastSuccessfulCheck(
                         App.CurrentApp.UserSettings.Current
-                            .LastSuccessfulCheckUtc
+                            .LastSuccessfulCheckUtc,
+                        DateTimeOffset.UtcNow
                     ),
                     "Nothing to show yet",
                     "Run an update check to find newer app versions.",
@@ -254,6 +284,7 @@ public partial class MainWindow : Window
             };
 
         StatusTextBlock.Text = statusMessage ?? defaultStatus;
+        StatusTextBlock.ToolTip = CreateLastCheckToolTip(state);
         EmptyStateTitleTextBlock.Text = emptyTitle;
         EmptyStateDescriptionTextBlock.Text = emptyDescription;
         StatusIndicator.SetResourceReference(Shape.FillProperty, brushKey);
@@ -261,6 +292,11 @@ public partial class MainWindow : Window
 
     private void ShowSettings(bool show)
     {
+        if (!show)
+        {
+            SettingsPage.ClearTransientFeedback();
+        }
+
         _isSettingsOpen = show;
 
         UpdatesPagePanel.Visibility = show
@@ -284,8 +320,8 @@ public partial class MainWindow : Window
             : Visibility.Collapsed;
 
         string navigationDescription = show
-            ? "Return to updates"
-            : "Open settings";
+            ? "Return to updates (Esc)"
+            : "Open settings (Ctrl+,)";
         SettingsNavigationButton.ToolTip = navigationDescription;
 
         AutomationProperties.SetName(
@@ -296,6 +332,13 @@ public partial class MainWindow : Window
         if (show)
         {
             SettingsPage.RefreshChoices();
+
+            if (IsLoaded)
+            {
+                _ = Dispatcher.BeginInvoke(
+                    SettingsPage.FocusFirstControl
+                );
+            }
         }
     }
 
@@ -348,6 +391,11 @@ public partial class MainWindow : Window
                 break;
             case TrayUpdateCheckStatus.TimedOut:
                 ApplyState(UpdateCheckState.TimedOut);
+                ShowInlineError(
+                    "Update check timed out",
+                    "WinGet took too long to respond. Check your " +
+                    "connection and try again."
+                );
                 break;
             case TrayUpdateCheckStatus.Cancelled:
                 ApplyState(UpdateCheckState.Cancelled);
@@ -356,6 +404,11 @@ public partial class MainWindow : Window
                 ApplyState(
                     UpdateCheckState.Error,
                     result.Failure?.StatusMessage
+                );
+                ShowInlineError(
+                    result.Failure?.Title ?? "Unable to check for updates",
+                    result.Failure?.Message ??
+                    "The update check could not be completed."
                 );
                 break;
             default:
@@ -374,6 +427,7 @@ public partial class MainWindow : Window
 
     private void ApplyUpdateResults(IReadOnlyList<AppUpdateInfo> updates)
     {
+        HideInlineError();
         _updates = updates;
         UpdatesDataGrid.ItemsSource = _updates;
         ApplyState(
@@ -386,6 +440,9 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _relativeTimeRefreshTimer.Stop();
+        _relativeTimeRefreshTimer.Tick -=
+            RelativeTimeRefreshTimer_Tick;
         Activated -= MainWindow_Activated;
         Deactivated -= MainWindow_Deactivated;
         ThemeManager.ThemeChanged -= ThemeManager_ThemeChanged;
@@ -393,33 +450,166 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 
-    private void ShowUpdateCheckMessage(
-        string message,
-        string title,
-        MessageBoxImage icon)
+    private void RelativeTimeRefreshTimer_Tick(
+        object? sender,
+        EventArgs e)
     {
-        System.Windows.MessageBox.Show(
-            this,
-            message,
-            title,
-            MessageBoxButton.OK,
-            icon
+        if (_currentState == UpdateCheckState.Ready &&
+            InlineErrorPanel.Visibility != Visibility.Visible)
+        {
+            ApplyState(UpdateCheckState.Ready);
+        }
+
+        if (_isSettingsOpen)
+        {
+            SettingsPage.RefreshTimeSummaries();
+        }
+    }
+
+    private void RetryUpdateCheckButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        HideInlineError();
+        _ = RunManualCheckAsync();
+    }
+
+    private void DismissInlineErrorButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        HideInlineError();
+    }
+
+    private void ShowInlineError(string title, string message)
+    {
+        InlineErrorTitleTextBlock.Text = title;
+        InlineErrorMessageTextBlock.Text = message;
+        InlineErrorPanel.Visibility = Visibility.Visible;
+    }
+
+    private void HideInlineError()
+    {
+        InlineErrorPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void CopyUpgradeCommandButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button
+            { Tag: AppUpdateInfo update })
+        {
+            return;
+        }
+
+        string command = CreateUpgradeCommand(update);
+
+        try
+        {
+            System.Windows.Clipboard.SetText(command);
+            HideInlineError();
+            StatusTextBlock.Text =
+                $"Upgrade command copied for {update.Name}.";
+            StatusTextBlock.ToolTip = command;
+            StatusIndicator.SetResourceReference(
+                Shape.FillProperty,
+                "StatusSuccessBrush"
+            );
+        }
+        catch (ExternalException)
+        {
+            ShowInlineError(
+                "Unable to copy command",
+                "Windows could not access the clipboard. Try again."
+            );
+        }
+    }
+
+    private void MainWindow_PreviewKeyDown(
+        object sender,
+        System.Windows.Input.KeyEventArgs e)
+    {
+        bool controlPressed =
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+
+        if (e.Key == Key.Escape)
+        {
+            if (_isSettingsOpen)
+            {
+                ShowSettings(show: false);
+                SettingsNavigationButton.Focus();
+                e.Handled = true;
+            }
+            else if (InlineErrorPanel.Visibility == Visibility.Visible)
+            {
+                HideInlineError();
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if (controlPressed && e.Key == Key.OemComma)
+        {
+            if (SettingsNavigationButton.IsEnabled)
+            {
+                ShowSettings(!_isSettingsOpen);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        if ((e.Key == Key.F5 ||
+             (controlPressed && e.Key == Key.R)) &&
+            _updateCheckCancellation is null &&
+            !_isTrayCheckActive)
+        {
+            ShowSettings(show: false);
+            _ = RunManualCheckAsync();
+            e.Handled = true;
+        }
+    }
+
+    internal static string CreateUpgradeCommand(AppUpdateInfo update)
+    {
+        string safeId = new(
+            update.Id
+                .Where(character =>
+                    !char.IsControl(character) && character != '"')
+                .ToArray()
         );
+
+        return
+            $"winget upgrade --id \"{safeId}\" --exact " +
+            "--accept-source-agreements --accept-package-agreements";
     }
 
     internal static string FormatLastSuccessfulCheck(
         DateTimeOffset? checkedAtUtc,
-        CultureInfo? culture = null)
+        DateTimeOffset now)
     {
         if (checkedAtUtc is null)
         {
             return "Last checked: Never";
         }
 
-        string formatted = checkedAtUtc.Value
-            .ToLocalTime()
-            .ToString("g", culture ?? CultureInfo.CurrentCulture);
-        return $"Last checked: {formatted}";
+        return "Last checked: " + DateTimeDisplayFormatter.FormatRelative(
+            checkedAtUtc.Value,
+            now
+        );
+    }
+
+    private string? CreateLastCheckToolTip(UpdateCheckState state)
+    {
+        DateTimeOffset? lastCheck = App.CurrentApp.UserSettings.Current
+            .LastSuccessfulCheckUtc;
+
+        return state == UpdateCheckState.Ready && lastCheck is not null
+            ? "Last successful check: " +
+              DateTimeDisplayFormatter.FormatExact(lastCheck.Value)
+            : null;
     }
 
 }
