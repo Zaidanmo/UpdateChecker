@@ -322,7 +322,7 @@ public partial class MainWindow : Window
 
         string navigationDescription = show
             ? "Return to updates (Esc)"
-            : "Open settings (Ctrl+,)";
+            : "Open settings (Ctrl+S)";
         SettingsNavigationButton.ToolTip = navigationDescription;
 
         AutomationProperties.SetName(
@@ -619,7 +619,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (controlPressed && e.Key == Key.OemComma)
+        if (controlPressed && e.Key == Key.S)
         {
             if (SettingsNavigationButton.IsEnabled)
             {

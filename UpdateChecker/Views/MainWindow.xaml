@@ -49,7 +49,7 @@
                             Margin="0,0,12,0"
                             Style="{StaticResource CircularIconButtonStyle}"
                             Click="SettingsNavigationButton_Click"
-                            ToolTip="Open settings (Ctrl+,)"
+                            ToolTip="Open settings (Ctrl+S)"
                             AutomationProperties.Name="Open settings"
                             VerticalAlignment="Center">
                         <Grid Width="19"

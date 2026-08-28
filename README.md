@@ -89,8 +89,8 @@ dotnet run --project UpdateChecker/UpdateChecker.csproj
 3. Review the installed and available versions in the results table.
 4. Use the copy button in the **Update command** column when you want to run an
    update manually.
-5. Open Settings to configure background operation, automatic check intervals,
-   and the application theme.
+5. Open Settings or press `Ctrl+S` to configure background operation, automatic
+   check intervals, and the application theme.
 
 When background operation is enabled, closing the window hides the application
 in the notification area. Use its notification-area menu to reopen it, check
